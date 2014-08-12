@@ -39,6 +39,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
     }
 
     if (error) {
+        NSLog(@"Error");
     }
 
     NSDictionary *gistDict = @{@"description":[self gistDescription], @"files":gistFiles};
