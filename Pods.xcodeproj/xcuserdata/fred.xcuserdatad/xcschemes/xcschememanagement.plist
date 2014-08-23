@@ -29,7 +29,17 @@
 			<key>isShown</key>
 			<false/>
 		</dict>
+		<key>Pods-TwistedOakCollapsingFutures.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+		</dict>
 		<key>Pods-UICKeyChainStore.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+		</dict>
+		<key>Pods-UnionFind.xcscheme</key>
 		<dict>
 			<key>isShown</key>
 			<false/>
@@ -46,47 +56,6 @@
 		</dict>
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
-	<dict>
-		<key>06BD927CCD0540C1AF91A211</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>1FD94FE9B86E45F5A5A19B8B</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>21441E6CA91D4D259BF84B10</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>25F1CFF55BB14FE592C1CF6F</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>30E396BC56C44AC3A4964629</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>32DC6317BAB240F79DD22496</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>80545A506D31428684572FE5</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>DD569CBCB8DA42A5AF347CF7</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-	</dict>
+	<dict/>
 </dict>
 </plist>

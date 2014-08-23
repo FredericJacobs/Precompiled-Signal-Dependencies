@@ -108,11 +108,23 @@
 #define COCOAPODS_VERSION_MINOR_PastelogKit 1
 #define COCOAPODS_VERSION_PATCH_PastelogKit 0
 
+// TwistedOakCollapsingFutures
+#define COCOAPODS_POD_AVAILABLE_TwistedOakCollapsingFutures
+#define COCOAPODS_VERSION_MAJOR_TwistedOakCollapsingFutures 1
+#define COCOAPODS_VERSION_MINOR_TwistedOakCollapsingFutures 0
+#define COCOAPODS_VERSION_PATCH_TwistedOakCollapsingFutures 0
+
 // UICKeyChainStore
 #define COCOAPODS_POD_AVAILABLE_UICKeyChainStore
 #define COCOAPODS_VERSION_MAJOR_UICKeyChainStore 1
 #define COCOAPODS_VERSION_MINOR_UICKeyChainStore 0
 #define COCOAPODS_VERSION_PATCH_UICKeyChainStore 7
+
+// UnionFind
+#define COCOAPODS_POD_AVAILABLE_UnionFind
+#define COCOAPODS_VERSION_MAJOR_UnionFind 1
+#define COCOAPODS_VERSION_MINOR_UnionFind 0
+#define COCOAPODS_VERSION_PATCH_UnionFind 1
 
 // libPhoneNumber-iOS
 #define COCOAPODS_POD_AVAILABLE_libPhoneNumber_iOS
