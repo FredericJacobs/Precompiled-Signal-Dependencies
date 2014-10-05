@@ -105,7 +105,7 @@
 // PastelogKit
 #define COCOAPODS_POD_AVAILABLE_PastelogKit
 #define COCOAPODS_VERSION_MAJOR_PastelogKit 1
-#define COCOAPODS_VERSION_MINOR_PastelogKit 1
+#define COCOAPODS_VERSION_MINOR_PastelogKit 2
 #define COCOAPODS_VERSION_PATCH_PastelogKit 0
 
 // TwistedOakCollapsingFutures
