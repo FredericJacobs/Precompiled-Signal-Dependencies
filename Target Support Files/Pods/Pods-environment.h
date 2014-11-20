@@ -6,47 +6,59 @@
 // project.
 
 
+// 25519
+#define COCOAPODS_POD_AVAILABLE_25519
+#define COCOAPODS_VERSION_MAJOR_25519 1
+#define COCOAPODS_VERSION_MINOR_25519 8
+#define COCOAPODS_VERSION_PATCH_25519 0
+
 // AFNetworking
 #define COCOAPODS_POD_AVAILABLE_AFNetworking
 #define COCOAPODS_VERSION_MAJOR_AFNetworking 2
-#define COCOAPODS_VERSION_MINOR_AFNetworking 4
-#define COCOAPODS_VERSION_PATCH_AFNetworking 1
+#define COCOAPODS_VERSION_MINOR_AFNetworking 5
+#define COCOAPODS_VERSION_PATCH_AFNetworking 0
 
 // AFNetworking/NSURLConnection
 #define COCOAPODS_POD_AVAILABLE_AFNetworking_NSURLConnection
 #define COCOAPODS_VERSION_MAJOR_AFNetworking_NSURLConnection 2
-#define COCOAPODS_VERSION_MINOR_AFNetworking_NSURLConnection 4
-#define COCOAPODS_VERSION_PATCH_AFNetworking_NSURLConnection 1
+#define COCOAPODS_VERSION_MINOR_AFNetworking_NSURLConnection 5
+#define COCOAPODS_VERSION_PATCH_AFNetworking_NSURLConnection 0
 
 // AFNetworking/NSURLSession
 #define COCOAPODS_POD_AVAILABLE_AFNetworking_NSURLSession
 #define COCOAPODS_VERSION_MAJOR_AFNetworking_NSURLSession 2
-#define COCOAPODS_VERSION_MINOR_AFNetworking_NSURLSession 4
-#define COCOAPODS_VERSION_PATCH_AFNetworking_NSURLSession 1
+#define COCOAPODS_VERSION_MINOR_AFNetworking_NSURLSession 5
+#define COCOAPODS_VERSION_PATCH_AFNetworking_NSURLSession 0
 
 // AFNetworking/Reachability
 #define COCOAPODS_POD_AVAILABLE_AFNetworking_Reachability
 #define COCOAPODS_VERSION_MAJOR_AFNetworking_Reachability 2
-#define COCOAPODS_VERSION_MINOR_AFNetworking_Reachability 4
-#define COCOAPODS_VERSION_PATCH_AFNetworking_Reachability 1
+#define COCOAPODS_VERSION_MINOR_AFNetworking_Reachability 5
+#define COCOAPODS_VERSION_PATCH_AFNetworking_Reachability 0
 
 // AFNetworking/Security
 #define COCOAPODS_POD_AVAILABLE_AFNetworking_Security
 #define COCOAPODS_VERSION_MAJOR_AFNetworking_Security 2
-#define COCOAPODS_VERSION_MINOR_AFNetworking_Security 4
-#define COCOAPODS_VERSION_PATCH_AFNetworking_Security 1
+#define COCOAPODS_VERSION_MINOR_AFNetworking_Security 5
+#define COCOAPODS_VERSION_PATCH_AFNetworking_Security 0
 
 // AFNetworking/Serialization
 #define COCOAPODS_POD_AVAILABLE_AFNetworking_Serialization
 #define COCOAPODS_VERSION_MAJOR_AFNetworking_Serialization 2
-#define COCOAPODS_VERSION_MINOR_AFNetworking_Serialization 4
-#define COCOAPODS_VERSION_PATCH_AFNetworking_Serialization 1
+#define COCOAPODS_VERSION_MINOR_AFNetworking_Serialization 5
+#define COCOAPODS_VERSION_PATCH_AFNetworking_Serialization 0
 
 // AFNetworking/UIKit
 #define COCOAPODS_POD_AVAILABLE_AFNetworking_UIKit
 #define COCOAPODS_VERSION_MAJOR_AFNetworking_UIKit 2
-#define COCOAPODS_VERSION_MINOR_AFNetworking_UIKit 4
-#define COCOAPODS_VERSION_PATCH_AFNetworking_UIKit 1
+#define COCOAPODS_VERSION_MINOR_AFNetworking_UIKit 5
+#define COCOAPODS_VERSION_PATCH_AFNetworking_UIKit 0
+
+// AxolotlKit
+#define COCOAPODS_POD_AVAILABLE_AxolotlKit
+#define COCOAPODS_VERSION_MAJOR_AxolotlKit 0
+#define COCOAPODS_VERSION_MINOR_AxolotlKit 1
+#define COCOAPODS_VERSION_PATCH_AxolotlKit 0
 
 // CocoaLumberjack
 #define COCOAPODS_POD_AVAILABLE_CocoaLumberjack
@@ -66,47 +78,78 @@
 #define COCOAPODS_VERSION_MINOR_CocoaLumberjack_Extensions 9
 #define COCOAPODS_VERSION_PATCH_CocoaLumberjack_Extensions 2
 
-// MMDrawerController
-#define COCOAPODS_POD_AVAILABLE_MMDrawerController
-#define COCOAPODS_VERSION_MAJOR_MMDrawerController 0
-#define COCOAPODS_VERSION_MINOR_MMDrawerController 5
-#define COCOAPODS_VERSION_PATCH_MMDrawerController 7
+// DJWActionSheet
+#define COCOAPODS_POD_AVAILABLE_DJWActionSheet
+#define COCOAPODS_VERSION_MAJOR_DJWActionSheet 1
+#define COCOAPODS_VERSION_MINOR_DJWActionSheet 0
+#define COCOAPODS_VERSION_PATCH_DJWActionSheet 4
 
-// MMDrawerController/Core
-#define COCOAPODS_POD_AVAILABLE_MMDrawerController_Core
-#define COCOAPODS_VERSION_MAJOR_MMDrawerController_Core 0
-#define COCOAPODS_VERSION_MINOR_MMDrawerController_Core 5
-#define COCOAPODS_VERSION_PATCH_MMDrawerController_Core 7
+// HKDFKit
+#define COCOAPODS_POD_AVAILABLE_HKDFKit
+#define COCOAPODS_VERSION_MAJOR_HKDFKit 0
+#define COCOAPODS_VERSION_MINOR_HKDFKit 0
+#define COCOAPODS_VERSION_PATCH_HKDFKit 3
 
-// MMDrawerController/MMDrawerBarButtonItem
-#define COCOAPODS_POD_AVAILABLE_MMDrawerController_MMDrawerBarButtonItem
-#define COCOAPODS_VERSION_MAJOR_MMDrawerController_MMDrawerBarButtonItem 0
-#define COCOAPODS_VERSION_MINOR_MMDrawerController_MMDrawerBarButtonItem 5
-#define COCOAPODS_VERSION_PATCH_MMDrawerController_MMDrawerBarButtonItem 7
+// JSQMessagesViewController
+#define COCOAPODS_POD_AVAILABLE_JSQMessagesViewController
+// This library does not follow semantic-versioning,
+// so we were not able to define version macros.
+// Please contact the author.
+// Version: 6.0-beta6.
 
-// MMDrawerController/MMDrawerVisualStates
-#define COCOAPODS_POD_AVAILABLE_MMDrawerController_MMDrawerVisualStates
-#define COCOAPODS_VERSION_MAJOR_MMDrawerController_MMDrawerVisualStates 0
-#define COCOAPODS_VERSION_MINOR_MMDrawerController_MMDrawerVisualStates 5
-#define COCOAPODS_VERSION_PATCH_MMDrawerController_MMDrawerVisualStates 7
+// JSQSystemSoundPlayer
+#define COCOAPODS_POD_AVAILABLE_JSQSystemSoundPlayer
+#define COCOAPODS_VERSION_MAJOR_JSQSystemSoundPlayer 2
+#define COCOAPODS_VERSION_MINOR_JSQSystemSoundPlayer 0
+#define COCOAPODS_VERSION_PATCH_JSQSystemSoundPlayer 0
 
-// MMDrawerController/Subclass
-#define COCOAPODS_POD_AVAILABLE_MMDrawerController_Subclass
-#define COCOAPODS_VERSION_MAJOR_MMDrawerController_Subclass 0
-#define COCOAPODS_VERSION_MINOR_MMDrawerController_Subclass 5
-#define COCOAPODS_VERSION_PATCH_MMDrawerController_Subclass 7
+// Mantle
+#define COCOAPODS_POD_AVAILABLE_Mantle
+#define COCOAPODS_VERSION_MAJOR_Mantle 1
+#define COCOAPODS_VERSION_MINOR_Mantle 5
+#define COCOAPODS_VERSION_PATCH_Mantle 1
+
+// Mantle/extobjc
+#define COCOAPODS_POD_AVAILABLE_Mantle_extobjc
+#define COCOAPODS_VERSION_MAJOR_Mantle_extobjc 1
+#define COCOAPODS_VERSION_MINOR_Mantle_extobjc 5
+#define COCOAPODS_VERSION_PATCH_Mantle_extobjc 1
 
 // OpenSSL
 #define COCOAPODS_POD_AVAILABLE_OpenSSL
 #define COCOAPODS_VERSION_MAJOR_OpenSSL 1
 #define COCOAPODS_VERSION_MINOR_OpenSSL 0
-#define COCOAPODS_VERSION_PATCH_OpenSSL 109
+#define COCOAPODS_VERSION_PATCH_OpenSSL 110
 
 // PastelogKit
 #define COCOAPODS_POD_AVAILABLE_PastelogKit
 #define COCOAPODS_VERSION_MAJOR_PastelogKit 1
 #define COCOAPODS_VERSION_MINOR_PastelogKit 2
 #define COCOAPODS_VERSION_PATCH_PastelogKit 0
+
+// ProtocolBuffers
+#define COCOAPODS_POD_AVAILABLE_ProtocolBuffers
+#define COCOAPODS_VERSION_MAJOR_ProtocolBuffers 1
+#define COCOAPODS_VERSION_MINOR_ProtocolBuffers 9
+#define COCOAPODS_VERSION_PATCH_ProtocolBuffers 2
+
+// SQLCipher/common
+#define COCOAPODS_POD_AVAILABLE_SQLCipher_common
+#define COCOAPODS_VERSION_MAJOR_SQLCipher_common 3
+#define COCOAPODS_VERSION_MINOR_SQLCipher_common 1
+#define COCOAPODS_VERSION_PATCH_SQLCipher_common 0
+
+// SQLCipher/fts
+#define COCOAPODS_POD_AVAILABLE_SQLCipher_fts
+#define COCOAPODS_VERSION_MAJOR_SQLCipher_fts 3
+#define COCOAPODS_VERSION_MINOR_SQLCipher_fts 1
+#define COCOAPODS_VERSION_PATCH_SQLCipher_fts 0
+
+// SocketRocket
+#define COCOAPODS_POD_AVAILABLE_SocketRocket
+#define COCOAPODS_VERSION_MAJOR_SocketRocket 0
+#define COCOAPODS_VERSION_MINOR_SocketRocket 3
+#define COCOAPODS_VERSION_PATCH_SocketRocket 1
 
 // TwistedOakCollapsingFutures
 #define COCOAPODS_POD_AVAILABLE_TwistedOakCollapsingFutures
@@ -125,6 +168,18 @@
 #define COCOAPODS_VERSION_MAJOR_UnionFind 1
 #define COCOAPODS_VERSION_MINOR_UnionFind 0
 #define COCOAPODS_VERSION_PATCH_UnionFind 1
+
+// YapDatabase/SQLCipher
+#define COCOAPODS_POD_AVAILABLE_YapDatabase_SQLCipher
+#define COCOAPODS_VERSION_MAJOR_YapDatabase_SQLCipher 2
+#define COCOAPODS_VERSION_MINOR_YapDatabase_SQLCipher 5
+#define COCOAPODS_VERSION_PATCH_YapDatabase_SQLCipher 3
+
+// YapDatabase/common
+#define COCOAPODS_POD_AVAILABLE_YapDatabase_common
+#define COCOAPODS_VERSION_MAJOR_YapDatabase_common 2
+#define COCOAPODS_VERSION_MINOR_YapDatabase_common 5
+#define COCOAPODS_VERSION_PATCH_YapDatabase_common 3
 
 // libPhoneNumber-iOS
 #define COCOAPODS_POD_AVAILABLE_libPhoneNumber_iOS

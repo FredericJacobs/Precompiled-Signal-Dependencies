@@ -1,0 +1,1 @@
+PODS_______OTHER_LDFLAGS = -framework "Security"

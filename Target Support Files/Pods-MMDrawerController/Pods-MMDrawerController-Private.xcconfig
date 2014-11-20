@@ -1,5 +1,0 @@
-#include "Pods-MMDrawerController.xcconfig"
-GCC_PREPROCESSOR_DEFINITIONS = $(inherited) COCOAPODS=1
-HEADER_SEARCH_PATHS = "${PODS_ROOT}/Headers/Build" "${PODS_ROOT}/Headers/Build/MMDrawerController" "${PODS_ROOT}/Headers/Public" "${PODS_ROOT}/Headers/Public/AFNetworking" "${PODS_ROOT}/Headers/Public/CocoaLumberjack" "${PODS_ROOT}/Headers/Public/MMDrawerController" "${PODS_ROOT}/Headers/Public/OpenSSL" "${PODS_ROOT}/Headers/Public/OpenSSL/openssl" "${PODS_ROOT}/Headers/Public/PastelogKit" "${PODS_ROOT}/Headers/Public/TwistedOakCollapsingFutures" "${PODS_ROOT}/Headers/Public/UICKeyChainStore" "${PODS_ROOT}/Headers/Public/UnionFind" "${PODS_ROOT}/Headers/Public/libPhoneNumber-iOS"
-OTHER_LDFLAGS = ${PODS_MMDRAWERCONTROLLER_OTHER_LDFLAGS} -ObjC
-PODS_ROOT = ${SRCROOT}
