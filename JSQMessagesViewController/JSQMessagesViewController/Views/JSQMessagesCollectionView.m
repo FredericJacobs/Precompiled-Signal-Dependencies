@@ -27,6 +27,9 @@
 
 #import "UIColor+JSQMessages.h"
 
+#import "JSQCallCollectionViewCell.h"
+
+#import "JSQDisplayedMessageCollectionViewCell.h"
 
 @interface JSQMessagesCollectionView () <JSQMessagesLoadEarlierHeaderViewDelegate>
 
@@ -67,6 +70,12 @@
     [self registerNib:[JSQMessagesLoadEarlierHeaderView nib]
           forSupplementaryViewOfKind:UICollectionElementKindSectionHeader
           withReuseIdentifier:[JSQMessagesLoadEarlierHeaderView headerReuseIdentifier]];
+    
+    [self registerNib:[JSQCallCollectionViewCell nib]
+          forCellWithReuseIdentifier:[JSQCallCollectionViewCell cellReuseIdentifier]];
+    
+    [self registerNib:[JSQDisplayedMessageCollectionViewCell nib]
+          forCellWithReuseIdentifier:[JSQDisplayedMessageCollectionViewCell cellReuseIdentifier]];
 
     _typingIndicatorDisplaysOnLeft = YES;
     _typingIndicatorMessageBubbleColor = [UIColor jsq_messageBubbleLightGrayColor];
@@ -133,20 +142,35 @@
 
 - (void)messagesCollectionViewCellDidTapAvatar:(JSQMessagesCollectionViewCell *)cell
 {
+    NSIndexPath *indexPath = [self indexPathForCell:cell];
+    if (indexPath == nil) {
+        return;
+    }
+    
     [self.delegate collectionView:self
             didTapAvatarImageView:cell.avatarImageView
-                      atIndexPath:[self indexPathForCell:cell]];
+                      atIndexPath:indexPath];
 }
 
 - (void)messagesCollectionViewCellDidTapMessageBubble:(JSQMessagesCollectionViewCell *)cell
 {
-    [self.delegate collectionView:self didTapMessageBubbleAtIndexPath:[self indexPathForCell:cell]];
+    NSIndexPath *indexPath = [self indexPathForCell:cell];
+    if (indexPath == nil) {
+        return;
+    }
+    
+    [self.delegate collectionView:self didTapMessageBubbleAtIndexPath:indexPath];
 }
 
 - (void)messagesCollectionViewCellDidTapCell:(JSQMessagesCollectionViewCell *)cell atPosition:(CGPoint)position
 {
+    NSIndexPath *indexPath = [self indexPathForCell:cell];
+    if (indexPath == nil) {
+        return;
+    }
+    
     [self.delegate collectionView:self
-            didTapCellAtIndexPath:[self indexPathForCell:cell]
+            didTapCellAtIndexPath:indexPath
                     touchLocation:position];
 }
 

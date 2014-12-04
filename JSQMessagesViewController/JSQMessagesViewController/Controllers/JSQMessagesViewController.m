@@ -42,8 +42,14 @@
 #import "UIColor+JSQMessages.h"
 #import "UIDevice+JSQMessages.h"
 
-static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObservingContext;
+#import "JSQCall.h"
+#import "JSQCallCollectionViewCell.h"
 
+#import "JSQInfoMessage.h"
+#import "JSQErrorMessage.h"
+#import "JSQDisplayedMessageCollectionViewCell.h"
+
+static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObservingContext;
 
 
 @interface JSQMessagesViewController () <JSQMessagesInputToolbarDelegate,
@@ -142,6 +148,10 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
     self.incomingCellIdentifier = [JSQMessagesCollectionViewCellIncoming cellReuseIdentifier];
     self.incomingMediaCellIdentifier = [JSQMessagesCollectionViewCellIncoming mediaCellReuseIdentifier];
     
+    self.callCellIndentifier = [JSQCallCollectionViewCell cellReuseIdentifier];
+    
+    self.displayedMessageCellIndentifier = [JSQDisplayedMessageCollectionViewCell cellReuseIdentifier];
+    
     self.showTypingIndicator = NO;
     
     self.showLoadEarlierMessagesHeader = NO;
@@ -203,6 +213,12 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
     [self.collectionView reloadData];
 }
 
+- (void)setTopContentAdditionalInset:(CGFloat)topContentAdditionalInset
+{
+    _topContentAdditionalInset = topContentAdditionalInset;
+    [self jsq_updateCollectionViewInsets];
+}
+
 #pragma mark - View lifecycle
 
 - (void)viewDidLoad
@@ -255,6 +271,7 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
     [super viewDidDisappear:animated];
     [self jsq_removeObservers];
     [self.keyboardController endListeningForKeyboard];
+    [self jsq_setToolbarBottomLayoutGuideConstant:0.0f];
 }
 
 - (void)didReceiveMemoryWarning
@@ -342,11 +359,25 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
     
     NSInteger items = [self.collectionView numberOfItemsInSection:0];
     
-    if (items > 0) {
-        [self.collectionView scrollToItemAtIndexPath:[NSIndexPath indexPathForItem:items - 1 inSection:0]
-                                    atScrollPosition:UICollectionViewScrollPositionTop
-                                            animated:animated];
+    if (items == 0) {
+        return;
     }
+    
+    CGFloat collectionViewContentHeight = [self.collectionView.collectionViewLayout collectionViewContentSize].height;
+    BOOL isContentTooSmall = (collectionViewContentHeight < self.collectionView.bounds.size.height);
+    
+    if (isContentTooSmall) {
+        //  workaround for the first few messages not scrolling
+        //  when the collection view content size is too small, `scrollToItemAtIndexPath:` doesn't work properly
+        //  this seems to be a UIKit bug, see #256 on GitHub
+        [self.collectionView scrollRectToVisible:CGRectMake(0.0, collectionViewContentHeight - 1.0f, 1.0f, 1.0f)
+                                        animated:animated];
+        return;
+    }
+    
+    [self.collectionView scrollToItemAtIndexPath:[NSIndexPath indexPathForItem:items - 1 inSection:0]
+                                atScrollPosition:UICollectionViewScrollPositionTop
+                                        animated:animated];
 }
 
 #pragma mark - JSQMessages collection view data source
@@ -405,14 +436,76 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
     NSParameterAssert(messageSenderId != nil);
     
     BOOL isOutgoingMessage = [messageSenderId isEqualToString:self.senderId];
-    BOOL isMediaMessage = [messageItem isMediaMessage];
+    BOOL isCall = [messageItem isKindOfClass:[JSQCall class]];
+    BOOL isInfoMessage = [messageItem isKindOfClass:[JSQInfoMessage class]];
+    BOOL isErrorMessage = isInfoMessage ? NO : [messageItem isKindOfClass:[JSQErrorMessage class]];
+    
+    BOOL isMediaMessage = NO;
+    
+    if (!isCall && !isInfoMessage && !isErrorMessage )
+    {
+        isMediaMessage = [messageItem isMediaMessage];
+    }
+    
     
     NSString *cellIdentifier = nil;
-    if (isMediaMessage) {
+    
+    if (isCall) {
+        JSQCall * call = (JSQCall*)messageItem;
+        cellIdentifier = self.callCellIndentifier;
+        JSQCallCollectionViewCell * callCell = [collectionView dequeueReusableCellWithReuseIdentifier:cellIdentifier forIndexPath:indexPath];
+        callCell.cellLabel.text = [call text];
+        if (call.status == kCallFailed || call.status == kCallMissed)
+        {
+            callCell.cellLabel.textColor = [UIColor redColor];
+        }
+        
+        BOOL isOutgoing = [self.senderId isEqualToString:call.senderId];
+        if (isOutgoing)
+        {
+            callCell.outgoingCallImageView.image = [call thumbnailImage];
+        } else {
+            callCell.incomingCallImageView.image = [call thumbnailImage];
+        }
+        
+        callCell.layer.shouldRasterize = YES;
+        callCell.layer.rasterizationScale = [UIScreen mainScreen].scale;
+        return callCell;
+        
+    } else if (isInfoMessage) {
+        
+        JSQInfoMessage * infoMessage = (JSQInfoMessage*)messageItem;
+        cellIdentifier = self.displayedMessageCellIndentifier;
+        JSQDisplayedMessageCollectionViewCell * infoCell = [collectionView dequeueReusableCellWithReuseIdentifier:cellIdentifier forIndexPath:indexPath];
+        infoCell.cellLabel.text = [infoMessage text];
+        infoCell.cellLabel.textColor = [UIColor darkGrayColor];
+        infoCell.cellLabel.layer.borderColor = [[UIColor colorWithRed:239.f/255.f green:189.f/255.f blue:88.f/255.f alpha:1.0f] CGColor];
+        infoCell.headerImageView.image = [UIImage imageNamed:@"warning_white"];
+        infoCell.layer.shouldRasterize = YES;
+        infoCell.layer.rasterizationScale = [UIScreen mainScreen].scale;
+        return infoCell;
+        
+    } else if (isErrorMessage) {
+        
+        JSQErrorMessage * errorMessage = (JSQErrorMessage*)messageItem;
+        cellIdentifier = self.displayedMessageCellIndentifier;
+        JSQDisplayedMessageCollectionViewCell * errorCell = [collectionView dequeueReusableCellWithReuseIdentifier:cellIdentifier forIndexPath:indexPath];
+        errorCell.cellLabel.text = [errorMessage text];
+        errorCell.cellLabel.textColor = [UIColor darkGrayColor];
+        errorCell.cellLabel.layer.borderColor = [[UIColor colorWithRed:195.f/255.f green:0 blue:22.f/255.f alpha:1.f] CGColor];
+        errorCell.headerImageView.image = [UIImage imageNamed:@"error_white"];
+        errorCell.layer.shouldRasterize = YES;
+        errorCell.layer.rasterizationScale = [UIScreen mainScreen].scale;
+        return errorCell;
+        
+    } else if (isMediaMessage) {
+    
         cellIdentifier = isOutgoingMessage ? self.outgoingMediaCellIdentifier : self.incomingMediaCellIdentifier;
-    }
-    else {
+        
+    } else {
+        
         cellIdentifier = isOutgoingMessage ? self.outgoingCellIdentifier : self.incomingCellIdentifier;
+        
     }
     
     JSQMessagesCollectionViewCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:cellIdentifier forIndexPath:indexPath];
@@ -446,16 +539,22 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
     if (needsAvatar) {
         avatarImageDataSource = [collectionView.dataSource collectionView:collectionView avatarImageDataForItemAtIndexPath:indexPath];
         if (avatarImageDataSource != nil) {
-            cell.avatarImageView.image = [avatarImageDataSource avatarImage] ?: [avatarImageDataSource avatarPlaceholderImage];
-            cell.avatarImageView.highlightedImage = [avatarImageDataSource avatarHighlightedImage];
+            
+            UIImage *avatarImage = [avatarImageDataSource avatarImage];
+            if (avatarImage == nil) {
+                cell.avatarImageView.image = [avatarImageDataSource avatarPlaceholderImage];
+                cell.avatarImageView.highlightedImage = nil;
+            }
+            else {
+                cell.avatarImageView.image = avatarImage;
+                cell.avatarImageView.highlightedImage = [avatarImageDataSource avatarHighlightedImage];
+            }
         }
     }
     
     cell.cellTopLabel.attributedText = [collectionView.dataSource collectionView:collectionView attributedTextForCellTopLabelAtIndexPath:indexPath];
     cell.messageBubbleTopLabel.attributedText = [collectionView.dataSource collectionView:collectionView attributedTextForMessageBubbleTopLabelAtIndexPath:indexPath];
     cell.cellBottomLabel.attributedText = [collectionView.dataSource collectionView:collectionView attributedTextForCellBottomLabelAtIndexPath:indexPath];
-    
-    cell.backgroundColor = [UIColor whiteColor];
     
     CGFloat bubbleTopLabelInset = (avatarImageDataSource != nil) ? 60.0f : 15.0f;
     

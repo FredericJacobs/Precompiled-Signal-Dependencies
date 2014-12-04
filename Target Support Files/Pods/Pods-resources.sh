@@ -64,6 +64,8 @@ install_resource()
                     install_resource "JSQMessagesViewController/JSQMessagesViewController/Assets/Strings/zh-Hans.lproj"
                     install_resource "JSQMessagesViewController/JSQMessagesViewController/Assets/Strings/zh-Hant.lproj"
                     install_resource "JSQMessagesViewController/JSQMessagesViewController/Controllers/JSQMessagesViewController.xib"
+                    install_resource "JSQMessagesViewController/JSQMessagesViewController/Views/JSQCallCollectionViewCell.xib"
+                    install_resource "JSQMessagesViewController/JSQMessagesViewController/Views/JSQDisplayedMessageCollectionViewCell.xib"
                     install_resource "JSQMessagesViewController/JSQMessagesViewController/Views/JSQMessagesCollectionViewCellIncoming.xib"
                     install_resource "JSQMessagesViewController/JSQMessagesViewController/Views/JSQMessagesCollectionViewCellOutgoing.xib"
                     install_resource "JSQMessagesViewController/JSQMessagesViewController/Views/JSQMessagesLoadEarlierHeaderView.xib"

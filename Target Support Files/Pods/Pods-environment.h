@@ -57,7 +57,7 @@
 // AxolotlKit
 #define COCOAPODS_POD_AVAILABLE_AxolotlKit
 #define COCOAPODS_VERSION_MAJOR_AxolotlKit 0
-#define COCOAPODS_VERSION_MINOR_AxolotlKit 1
+#define COCOAPODS_VERSION_MINOR_AxolotlKit 3
 #define COCOAPODS_VERSION_PATCH_AxolotlKit 0
 
 // CocoaLumberjack
@@ -92,10 +92,9 @@
 
 // JSQMessagesViewController
 #define COCOAPODS_POD_AVAILABLE_JSQMessagesViewController
-// This library does not follow semantic-versioning,
-// so we were not able to define version macros.
-// Please contact the author.
-// Version: 6.0-beta6.
+#define COCOAPODS_VERSION_MAJOR_JSQMessagesViewController 6
+#define COCOAPODS_VERSION_MINOR_JSQMessagesViewController 1
+#define COCOAPODS_VERSION_PATCH_JSQMessagesViewController 0
 
 // JSQSystemSoundPlayer
 #define COCOAPODS_POD_AVAILABLE_JSQSystemSoundPlayer
@@ -173,13 +172,13 @@
 #define COCOAPODS_POD_AVAILABLE_YapDatabase_SQLCipher
 #define COCOAPODS_VERSION_MAJOR_YapDatabase_SQLCipher 2
 #define COCOAPODS_VERSION_MINOR_YapDatabase_SQLCipher 5
-#define COCOAPODS_VERSION_PATCH_YapDatabase_SQLCipher 3
+#define COCOAPODS_VERSION_PATCH_YapDatabase_SQLCipher 4
 
 // YapDatabase/common
 #define COCOAPODS_POD_AVAILABLE_YapDatabase_common
 #define COCOAPODS_VERSION_MAJOR_YapDatabase_common 2
 #define COCOAPODS_VERSION_MINOR_YapDatabase_common 5
-#define COCOAPODS_VERSION_PATCH_YapDatabase_common 3
+#define COCOAPODS_VERSION_PATCH_YapDatabase_common 4
 
 // libPhoneNumber-iOS
 #define COCOAPODS_POD_AVAILABLE_libPhoneNumber_iOS

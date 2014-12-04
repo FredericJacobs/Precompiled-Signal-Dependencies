@@ -33,6 +33,15 @@
 
 #import "UIImage+JSQMessages.h"
 
+#import "JSQCall.h"
+#import "JSQCallCollectionViewCell.h"
+
+#import "JSQDisplayedMessage.h"
+#import "JSQDisplayedMessageCollectionViewCell.h"
+
+#import "JSQErrorMessage.h"
+#import "JSQInfoMessage.h"
+
 
 const CGFloat kJSQMessagesCollectionViewCellLabelHeightDefault = 20.0f;
 const CGFloat kJSQMessagesCollectionViewAvatarSizeDefault = 30.0f;
@@ -40,7 +49,7 @@ const CGFloat kJSQMessagesCollectionViewAvatarSizeDefault = 30.0f;
 
 @interface JSQMessagesCollectionViewFlowLayout ()
 
-@property (strong, nonatomic) NSMutableDictionary *messageBubbleSizes;
+@property (strong, nonatomic) NSCache *messageBubbleCache;
 
 @property (strong, nonatomic) UIDynamicAnimator *dynamicAnimator;
 @property (strong, nonatomic) NSMutableSet *visibleIndexPaths;
@@ -81,7 +90,9 @@ const CGFloat kJSQMessagesCollectionViewAvatarSizeDefault = 30.0f;
     
     _bubbleImageAssetWidth = [UIImage jsq_bubbleCompactImage].size.width;
     
-    _messageBubbleSizes = [NSMutableDictionary new];
+    _messageBubbleCache = [NSCache new];
+    _messageBubbleCache.name = @"JSQMessagesCollectionViewFlowLayout.messageBubbleCache";
+    _messageBubbleCache.countLimit = 200;
     
     _messageBubbleFont = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
     
@@ -89,7 +100,7 @@ const CGFloat kJSQMessagesCollectionViewAvatarSizeDefault = 30.0f;
         _messageBubbleLeftRightMargin = 240.0f;
     }
     else {
-        _messageBubbleLeftRightMargin = 40.0f;
+        _messageBubbleLeftRightMargin = 50.0f;
     }
     
     _messageBubbleTextViewFrameInsets = UIEdgeInsetsMake(0.0f, 0.0f, 0.0f, 6.0f);
@@ -144,8 +155,8 @@ const CGFloat kJSQMessagesCollectionViewAvatarSizeDefault = 30.0f;
     
     _messageBubbleFont = nil;
     
-    [_messageBubbleSizes removeAllObjects];
-    _messageBubbleSizes = nil;
+    [_messageBubbleCache removeAllObjects];
+    _messageBubbleCache = nil;
     
     [_dynamicAnimator removeAllBehaviors];
     _dynamicAnimator = nil;
@@ -219,6 +230,11 @@ const CGFloat kJSQMessagesCollectionViewAvatarSizeDefault = 30.0f;
     [self invalidateLayoutWithContext:[JSQMessagesCollectionViewFlowLayoutInvalidationContext context]];
 }
 
+- (void)setCacheLimit:(NSUInteger)cacheLimit
+{
+    self.messageBubbleCache.countLimit = cacheLimit;
+}
+
 #pragma mark - Getters
 
 - (CGFloat)itemWidth
@@ -240,6 +256,11 @@ const CGFloat kJSQMessagesCollectionViewAvatarSizeDefault = 30.0f;
         _visibleIndexPaths = [NSMutableSet new];
     }
     return _visibleIndexPaths;
+}
+
+- (NSUInteger)cacheLimit
+{
+    return self.messageBubbleCache.countLimit;
 }
 
 #pragma mark - Notifications
@@ -266,6 +287,10 @@ const CGFloat kJSQMessagesCollectionViewAvatarSizeDefault = 30.0f;
     
     if (context.invalidateFlowLayoutAttributes
         || context.invalidateFlowLayoutDelegateMetrics) {
+        [self jsq_resetDynamicAnimator];
+    }
+    
+    if (context.emptyCache) {
         [self jsq_resetLayout];
     }
     
@@ -298,8 +323,8 @@ const CGFloat kJSQMessagesCollectionViewAvatarSizeDefault = 30.0f;
         NSMutableArray *attributesInRectCopy = [attributesInRect mutableCopy];
         NSArray *dynamicAttributes = [self.dynamicAnimator itemsInRect:rect];
         
-        // avoid duplicate attributes
-        // use dynamic animator attribute item instead of regular item, if it exists
+        //  avoid duplicate attributes
+        //  use dynamic animator attribute item instead of regular item, if it exists
         for (UICollectionViewLayoutAttributes *eachItem in attributesInRect) {
             
             for (UICollectionViewLayoutAttributes *eachDynamicItem in dynamicAttributes) {
@@ -399,7 +424,7 @@ const CGFloat kJSQMessagesCollectionViewAvatarSizeDefault = 30.0f;
 
 - (void)jsq_resetLayout
 {
-    [self.messageBubbleSizes removeAllObjects];
+    [self.messageBubbleCache removeAllObjects];
     [self jsq_resetDynamicAnimator];
 }
 
@@ -415,49 +440,58 @@ const CGFloat kJSQMessagesCollectionViewAvatarSizeDefault = 30.0f;
 
 - (CGSize)messageBubbleSizeForItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    NSValue *cachedSize = [self.messageBubbleSizes objectForKey:indexPath];
-    if (cachedSize) {
+    id<JSQMessageData> messageItem = [self.collectionView.dataSource collectionView:self.collectionView messageDataForItemAtIndexPath:indexPath];
+    
+    NSValue *cachedSize = [self.messageBubbleCache objectForKey:@(messageItem.hash)];
+    if (cachedSize != nil) {
         return [cachedSize CGSizeValue];
     }
     
-    id<JSQMessageData> messageItem = [self.collectionView.dataSource collectionView:self.collectionView messageDataForItemAtIndexPath:indexPath];
     CGSize finalSize = CGSizeZero;
     
-    if ([messageItem isMediaMessage]) {
-        finalSize = [[messageItem media] mediaViewDisplaySize];
-    }
-    else {
-        CGSize avatarSize = [self jsq_avatarSizeForIndexPath:indexPath];
+    if (![messageItem isKindOfClass:[JSQCall class]] && ![messageItem isKindOfClass:[JSQErrorMessage class]] && ![messageItem isKindOfClass:[JSQInfoMessage class]]) {
+        if ([messageItem isMediaMessage]) {
+            finalSize = [[messageItem media] mediaViewDisplaySize];
+        }
+        else {
+            CGSize avatarSize = [self jsq_avatarSizeForIndexPath:indexPath];
         
-        //  from the cell xibs, there is a 2 point space between avatar and bubble
-        CGFloat spacingBetweenAvatarAndBubble = 2.0f;
-        CGFloat horizontalContainerInsets = self.messageBubbleTextViewTextContainerInsets.left + self.messageBubbleTextViewTextContainerInsets.right;
-        CGFloat horizontalFrameInsets = self.messageBubbleTextViewFrameInsets.left + self.messageBubbleTextViewFrameInsets.right;
+            //  from the cell xibs, there is a 2 point space between avatar and bubble
+            CGFloat spacingBetweenAvatarAndBubble = 2.0f;
+            CGFloat horizontalContainerInsets = self.messageBubbleTextViewTextContainerInsets.left + self.messageBubbleTextViewTextContainerInsets.right;
+            CGFloat horizontalFrameInsets = self.messageBubbleTextViewFrameInsets.left + self.messageBubbleTextViewFrameInsets.right;
         
-        CGFloat horizontalInsetsTotal = horizontalContainerInsets + horizontalFrameInsets + spacingBetweenAvatarAndBubble;
-        CGFloat maximumTextWidth = self.itemWidth - avatarSize.width - self.messageBubbleLeftRightMargin - horizontalInsetsTotal;
+            CGFloat horizontalInsetsTotal = horizontalContainerInsets + horizontalFrameInsets + spacingBetweenAvatarAndBubble;
+            CGFloat maximumTextWidth = self.itemWidth - avatarSize.width - self.messageBubbleLeftRightMargin - horizontalInsetsTotal;
         
-        CGRect stringRect = [[messageItem text] boundingRectWithSize:CGSizeMake(maximumTextWidth, CGFLOAT_MAX)
+            CGRect stringRect = [[messageItem text] boundingRectWithSize:CGSizeMake(maximumTextWidth, CGFLOAT_MAX)
                                                              options:(NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading)
                                                           attributes:@{ NSFontAttributeName : self.messageBubbleFont }
                                                              context:nil];
         
-        CGSize stringSize = CGRectIntegral(stringRect).size;
+            CGSize stringSize = CGRectIntegral(stringRect).size;
         
-        CGFloat verticalContainerInsets = self.messageBubbleTextViewTextContainerInsets.top + self.messageBubbleTextViewTextContainerInsets.bottom;
-        CGFloat verticalFrameInsets = self.messageBubbleTextViewFrameInsets.top + self.messageBubbleTextViewFrameInsets.bottom;
+            CGFloat verticalContainerInsets = self.messageBubbleTextViewTextContainerInsets.top + self.messageBubbleTextViewTextContainerInsets.bottom;
+            CGFloat verticalFrameInsets = self.messageBubbleTextViewFrameInsets.top + self.messageBubbleTextViewFrameInsets.bottom;
         
         //  add extra 2 points of space, because `boundingRectWithSize:` is slightly off
         //  not sure why. magix. (shrug) if you know, submit a PR
-        CGFloat verticalInsets = verticalContainerInsets + verticalFrameInsets + 2.0f;
+            CGFloat verticalInsets = verticalContainerInsets + verticalFrameInsets + 2.0f;
         
         //  same as above, an extra 2 points of magix
-        CGFloat finalWidth = MAX(stringSize.width + horizontalInsetsTotal, self.bubbleImageAssetWidth) + 2.0f;
+            CGFloat finalWidth = MAX(stringSize.width + horizontalInsetsTotal, self.bubbleImageAssetWidth) + 2.0f;
         
-        finalSize = CGSizeMake(finalWidth, stringSize.height + verticalInsets);
+            finalSize = CGSizeMake(finalWidth, stringSize.height + verticalInsets);
+        }
+    }
+    else if ([messageItem isKindOfClass:[JSQCall class]])
+    {
+        finalSize = CGSizeMake(kCallCellWidth, kCallCellHeight);
+    } else {
+        finalSize = CGSizeMake(kDisplayedMessageCellWidth, kDisplayedMessageCellHeight);
     }
     
-    [self.messageBubbleSizes setObject:[NSValue valueWithCGSize:finalSize] forKey:indexPath];
+    [self.messageBubbleCache setObject:[NSValue valueWithCGSize:finalSize] forKey:@(messageItem.hash)];
     
     return finalSize;
 }
@@ -480,11 +514,8 @@ const CGFloat kJSQMessagesCollectionViewAvatarSizeDefault = 30.0f;
     NSIndexPath *indexPath = layoutAttributes.indexPath;
     
     CGSize messageBubbleSize = [self messageBubbleSizeForItemAtIndexPath:indexPath];
-    CGFloat remainingItemWidthForBubble = self.itemWidth - [self jsq_avatarSizeForIndexPath:indexPath].width;
     
-    CGFloat messageBubblePadding = remainingItemWidthForBubble - messageBubbleSize.width;
-    
-    layoutAttributes.messageBubbleLeftRightMargin = MAX(messageBubblePadding, 0.0f);
+    layoutAttributes.messageBubbleContainerViewWidth = messageBubbleSize.width;
     
     layoutAttributes.textViewFrameInsets = self.messageBubbleTextViewFrameInsets;
     
