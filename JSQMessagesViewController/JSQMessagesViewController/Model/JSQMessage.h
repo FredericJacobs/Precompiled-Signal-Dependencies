@@ -75,6 +75,9 @@ typedef enum : NSUInteger {
 @property (copy, nonatomic, readonly) id<JSQMessageMediaData> media;
 
 
+@property (nonatomic) TSMessageAdapterType messageType;
+
+
 #pragma mark - Initialization
 
 /**

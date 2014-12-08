@@ -97,6 +97,7 @@
         _senderDisplayName = [senderDisplayName copy];
         _date = [date copy];
         _isMediaMessage = isMedia;
+        _messageType = TSGenericTextMessageAdapter;
     }
     return self;
 }

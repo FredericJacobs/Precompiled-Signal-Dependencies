@@ -31,6 +31,8 @@
         _date = [date copy];
         _duration = durationInSeconds;
         _status = status;
+        _messageType = TSCallAdapter;
+        
     }
     return self;
 }

@@ -19,6 +19,7 @@
     
     if (self) {
         _errorMessageType = messageType;
+        _messageType = TSErrorMessageAdapter;
     }
     
     return self;
@@ -64,6 +65,11 @@
 {
     return [NSString stringWithFormat:@"<%@: senderId=%@, senderDisplayName=%@, date=%@, type=%ld>",
             [self class], self.senderId, self.senderDisplayName, self.date, self.errorMessageType];
+}
+
+-(TSMessageAdapterType)messageType
+{
+    return TSErrorMessageAdapter;
 }
 
 @end

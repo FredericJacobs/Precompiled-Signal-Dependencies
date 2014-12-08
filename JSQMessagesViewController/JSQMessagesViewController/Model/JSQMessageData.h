@@ -20,6 +20,16 @@
 
 #import "JSQMessageMediaData.h"
 
+typedef NS_ENUM(NSInteger, TSMessageAdapterType) {
+    TSIncomingMessageAdapter,
+    TSOutgoingMessageAdapter,
+    TSCallAdapter,
+    TSInfoMessageAdapter,
+    TSErrorMessageAdapter,
+    TSMediaAttachmentAdapter,
+    TSGenericTextMessageAdapter,       //Used when message direction is unknown (outgoing or incoming)
+};
+
 /**
  *  The `JSQMessageData` protocol defines the common interface through which 
  *  a `JSQMessagesViewController` and `JSQMessagesCollectionView` interact with message model objects.
@@ -107,5 +117,15 @@
  * TSOutgoingMessageStateDelivered)
  */
 - (NSInteger) messageState;
+
+/*
+ * Returns the type of message. 
+ * Does not need to be implemented for JSQMessage, 
+ * only for children JSQOutgoingMessage or JSQIncomingMessage.
+ *
+ * @see TSMessageType
+ */
+
+- (TSMessageAdapterType) messageType;
 
 @end

@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "7DCDA5DF4D734E0C19B011C0"
+               BlueprintIdentifier = "9F1D214481B1A3369D450161"
                BuildableName = "libPods-PastelogKit.a"
                BlueprintName = "Pods-PastelogKit"
                ReferencedContainer = "container:Pods.xcodeproj">

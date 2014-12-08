@@ -21,6 +21,7 @@
     
     if (self) {
         _infoMessageType = messageType;
+        _messageType = TSInfoMessageAdapter;
     }
     
     return self;
