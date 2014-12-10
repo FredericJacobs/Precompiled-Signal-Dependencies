@@ -477,6 +477,7 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
         JSQInfoMessage * infoMessage = (JSQInfoMessage*)messageItem;
         cellIdentifier = self.displayedMessageCellIndentifier;
         JSQDisplayedMessageCollectionViewCell * infoCell = [collectionView dequeueReusableCellWithReuseIdentifier:cellIdentifier forIndexPath:indexPath];
+        infoCell.delegate = collectionView;
         infoCell.cellLabel.text = [infoMessage text];
         infoCell.cellLabel.textColor = [UIColor darkGrayColor];
         infoCell.cellLabel.layer.borderColor = [[UIColor colorWithRed:239.f/255.f green:189.f/255.f blue:88.f/255.f alpha:1.0f] CGColor];
@@ -490,6 +491,7 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
         JSQErrorMessage * errorMessage = (JSQErrorMessage*)messageItem;
         cellIdentifier = self.displayedMessageCellIndentifier;
         JSQDisplayedMessageCollectionViewCell * errorCell = [collectionView dequeueReusableCellWithReuseIdentifier:cellIdentifier forIndexPath:indexPath];
+        errorCell.delegate = collectionView;
         errorCell.cellLabel.text = [errorMessage text];
         errorCell.cellLabel.textColor = [UIColor darkGrayColor];
         errorCell.cellLabel.layer.borderColor = [[UIColor colorWithRed:195.f/255.f green:0 blue:22.f/255.f alpha:1.0f] CGColor];
@@ -611,8 +613,16 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
 
 - (BOOL)collectionView:(JSQMessagesCollectionView *)collectionView shouldShowMenuForItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    //  disable menu for media messages
+    //  disable menu for media messages, calls, info and error messages
     id<JSQMessageData> messageItem = [collectionView.dataSource collectionView:collectionView messageDataForItemAtIndexPath:indexPath];
+    
+    BOOL isErrorOrInfoMessage = messageItem.messageType == TSInfoMessageAdapter || messageItem.messageType == TSErrorMessageAdapter;
+    BOOL isCall = messageItem.messageType == TSCallAdapter;
+    
+    if (isErrorOrInfoMessage || isCall) {
+        return NO;
+    }
+    
     if ([messageItem isMediaMessage]) {
         return NO;
     }
@@ -681,6 +691,8 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
 - (void)collectionView:(JSQMessagesCollectionView *)collectionView
  didTapCellAtIndexPath:(NSIndexPath *)indexPath
          touchLocation:(CGPoint)touchLocation { }
+
+
 
 #pragma mark - Input toolbar delegate
 
