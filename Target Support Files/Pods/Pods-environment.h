@@ -144,6 +144,12 @@
 #define COCOAPODS_VERSION_MINOR_SQLCipher_fts 1
 #define COCOAPODS_VERSION_PATCH_SQLCipher_fts 0
 
+// SSKeychain
+#define COCOAPODS_POD_AVAILABLE_SSKeychain
+#define COCOAPODS_VERSION_MAJOR_SSKeychain 1
+#define COCOAPODS_VERSION_MINOR_SSKeychain 2
+#define COCOAPODS_VERSION_PATCH_SSKeychain 2
+
 // SocketRocket
 #define COCOAPODS_POD_AVAILABLE_SocketRocket
 #define COCOAPODS_VERSION_MAJOR_SocketRocket 0
@@ -155,12 +161,6 @@
 #define COCOAPODS_VERSION_MAJOR_TwistedOakCollapsingFutures 1
 #define COCOAPODS_VERSION_MINOR_TwistedOakCollapsingFutures 0
 #define COCOAPODS_VERSION_PATCH_TwistedOakCollapsingFutures 0
-
-// UICKeyChainStore
-#define COCOAPODS_POD_AVAILABLE_UICKeyChainStore
-#define COCOAPODS_VERSION_MAJOR_UICKeyChainStore 1
-#define COCOAPODS_VERSION_MINOR_UICKeyChainStore 0
-#define COCOAPODS_VERSION_PATCH_UICKeyChainStore 7
 
 // UnionFind
 #define COCOAPODS_POD_AVAILABLE_UnionFind
