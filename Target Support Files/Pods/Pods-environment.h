@@ -94,7 +94,7 @@
 #define COCOAPODS_POD_AVAILABLE_JSQMessagesViewController
 #define COCOAPODS_VERSION_MAJOR_JSQMessagesViewController 6
 #define COCOAPODS_VERSION_MINOR_JSQMessagesViewController 1
-#define COCOAPODS_VERSION_PATCH_JSQMessagesViewController 0
+#define COCOAPODS_VERSION_PATCH_JSQMessagesViewController 1
 
 // JSQSystemSoundPlayer
 #define COCOAPODS_POD_AVAILABLE_JSQSystemSoundPlayer
@@ -130,7 +130,7 @@
 #define COCOAPODS_POD_AVAILABLE_ProtocolBuffers
 #define COCOAPODS_VERSION_MAJOR_ProtocolBuffers 1
 #define COCOAPODS_VERSION_MINOR_ProtocolBuffers 9
-#define COCOAPODS_VERSION_PATCH_ProtocolBuffers 2
+#define COCOAPODS_VERSION_PATCH_ProtocolBuffers 3
 
 // SQLCipher/common
 #define COCOAPODS_POD_AVAILABLE_SQLCipher_common
@@ -184,5 +184,5 @@
 #define COCOAPODS_POD_AVAILABLE_libPhoneNumber_iOS
 #define COCOAPODS_VERSION_MAJOR_libPhoneNumber_iOS 0
 #define COCOAPODS_VERSION_MINOR_libPhoneNumber_iOS 7
-#define COCOAPODS_VERSION_PATCH_libPhoneNumber_iOS 3
+#define COCOAPODS_VERSION_PATCH_libPhoneNumber_iOS 5
 
