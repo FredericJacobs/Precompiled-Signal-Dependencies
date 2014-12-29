@@ -331,12 +331,15 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
     
     [[NSNotificationCenter defaultCenter] postNotificationName:UITextViewTextDidChangeNotification object:textView];
     
-    [self.collectionView.collectionViewLayout invalidateLayoutWithContext:[JSQMessagesCollectionViewFlowLayoutInvalidationContext context]];
-    [self.collectionView reloadData];
     
-    if (self.automaticallyScrollsToMostRecentMessage) {
-        [self scrollToBottomAnimated:animated];
-    }
+    [self.collectionView performBatchUpdates:^{
+        [self.collectionView.collectionViewLayout invalidateLayoutWithContext:[JSQMessagesCollectionViewFlowLayoutInvalidationContext context]];
+        [self.collectionView reloadData];
+    } completion:^(BOOL finished){
+        if (self.automaticallyScrollsToMostRecentMessage) {
+            [self scrollToBottomAnimated:animated];
+        }
+    }];
 }
 
 - (void)finishReceivingMessage
@@ -348,12 +351,14 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
     
     self.showTypingIndicator = NO;
     
-    [self.collectionView.collectionViewLayout invalidateLayoutWithContext:[JSQMessagesCollectionViewFlowLayoutInvalidationContext context]];
-    [self.collectionView reloadData];
-    
-    if (self.automaticallyScrollsToMostRecentMessage && ![self jsq_isMenuVisible]) {
-        [self scrollToBottomAnimated:animated];
-    }
+    [self.collectionView performBatchUpdates:^{
+        [self.collectionView.collectionViewLayout invalidateLayoutWithContext:[JSQMessagesCollectionViewFlowLayoutInvalidationContext context]];
+        [self.collectionView reloadData];
+    } completion:^(BOOL finished){
+        if (self.automaticallyScrollsToMostRecentMessage) {
+            [self scrollToBottomAnimated:animated];
+        }
+    }];
 }
 
 - (void)scrollToBottomAnimated:(BOOL)animated
@@ -471,7 +476,7 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
         cellIdentifier = self.callCellIndentifier;
         JSQCallCollectionViewCell * callCell = [collectionView dequeueReusableCellWithReuseIdentifier:cellIdentifier forIndexPath:indexPath];
         callCell.cellLabel.text = [call text];
-        if (call.status == kCallFailed || call.status == kCallMissed)
+        if (call.status == kCallMissed)
         {
             callCell.cellLabel.textColor = [UIColor redColor];
         }
