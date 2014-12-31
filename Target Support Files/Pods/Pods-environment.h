@@ -57,7 +57,7 @@
 // AxolotlKit
 #define COCOAPODS_POD_AVAILABLE_AxolotlKit
 #define COCOAPODS_VERSION_MAJOR_AxolotlKit 0
-#define COCOAPODS_VERSION_MINOR_AxolotlKit 3
+#define COCOAPODS_VERSION_MINOR_AxolotlKit 5
 #define COCOAPODS_VERSION_PATCH_AxolotlKit 0
 
 // CocoaLumberjack
