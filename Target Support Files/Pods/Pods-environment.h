@@ -162,6 +162,12 @@
 #define COCOAPODS_VERSION_MINOR_TwistedOakCollapsingFutures 0
 #define COCOAPODS_VERSION_PATCH_TwistedOakCollapsingFutures 0
 
+// UICKeyChainStore
+#define COCOAPODS_POD_AVAILABLE_UICKeyChainStore
+#define COCOAPODS_VERSION_MAJOR_UICKeyChainStore 1
+#define COCOAPODS_VERSION_MINOR_UICKeyChainStore 0
+#define COCOAPODS_VERSION_PATCH_UICKeyChainStore 7
+
 // UnionFind
 #define COCOAPODS_POD_AVAILABLE_UnionFind
 #define COCOAPODS_VERSION_MAJOR_UnionFind 1
