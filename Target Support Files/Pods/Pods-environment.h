@@ -144,6 +144,12 @@
 #define COCOAPODS_VERSION_MINOR_ProtocolBuffers 9
 #define COCOAPODS_VERSION_PATCH_ProtocolBuffers 3
 
+// SCWaveformView
+#define COCOAPODS_POD_AVAILABLE_SCWaveformView
+#define COCOAPODS_VERSION_MAJOR_SCWaveformView 1
+#define COCOAPODS_VERSION_MINOR_SCWaveformView 0
+#define COCOAPODS_VERSION_PATCH_SCWaveformView 0
+
 // SQLCipher/common
 #define COCOAPODS_POD_AVAILABLE_SQLCipher_common
 #define COCOAPODS_VERSION_MAJOR_SQLCipher_common 3
