@@ -14,6 +14,11 @@
 			<key>isShown</key>
 			<false/>
 		</dict>
+		<key>Pods-APDropDownNavToolbar.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+		</dict>
 		<key>Pods-AxolotlKit.xcscheme</key>
 		<dict>
 			<key>isShown</key>
@@ -25,6 +30,11 @@
 			<false/>
 		</dict>
 		<key>Pods-DJWActionSheet.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+		</dict>
+		<key>Pods-FFCircularProgressView.xcscheme</key>
 		<dict>
 			<key>isShown</key>
 			<false/>
@@ -111,112 +121,6 @@
 		</dict>
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
-	<dict>
-		<key>1FBDFC88557CAE8ABCE9CC45</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>21F003720FCBC9F117D3A4E0</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>28F391596D46E36B35755368</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>2B84C72545ED507D9666CFDF</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>30BDDC21CAAB19608C1CDE7C</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>3AC93E196D66C4AE5B80FEF4</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>435B805C3AFD3A09E4773A23</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>465F6DB25F169F5E15C6746E</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>4BE7B5A97067CA5CC1234888</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>6F1DD1F5DAFD402831BA9359</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>6F95481290C6D7EB1449A685</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>7214D9F455C8A34437FC2DA3</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>A3185D5ED586A9F86F014B06</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>AB757A739445002379EBBAB0</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>BA734FCB623012DB0BC1908E</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>D5821B5CE60361B8EF9CAAE4</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>D71EF6CCDD273F9CD16D8DC2</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>DC2DA46DB403BA8D36282BF4</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>E200B68BA4FE841E44CF2E2D</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>EAE302D9740831C4482553BB</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>EDB3103F0DA792D2D96FBFF3</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-	</dict>
+	<dict/>
 </dict>
 </plist>

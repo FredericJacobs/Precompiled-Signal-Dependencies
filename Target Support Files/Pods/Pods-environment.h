@@ -54,6 +54,12 @@
 #define COCOAPODS_VERSION_MINOR_AFNetworking_UIKit 5
 #define COCOAPODS_VERSION_PATCH_AFNetworking_UIKit 0
 
+// APDropDownNavToolbar
+#define COCOAPODS_POD_AVAILABLE_APDropDownNavToolbar
+#define COCOAPODS_VERSION_MAJOR_APDropDownNavToolbar 1
+#define COCOAPODS_VERSION_MINOR_APDropDownNavToolbar 1
+#define COCOAPODS_VERSION_PATCH_APDropDownNavToolbar 0
+
 // AxolotlKit
 #define COCOAPODS_POD_AVAILABLE_AxolotlKit
 #define COCOAPODS_VERSION_MAJOR_AxolotlKit 0
@@ -84,6 +90,12 @@
 #define COCOAPODS_VERSION_MINOR_DJWActionSheet 0
 #define COCOAPODS_VERSION_PATCH_DJWActionSheet 4
 
+// FFCircularProgressView
+#define COCOAPODS_POD_AVAILABLE_FFCircularProgressView
+#define COCOAPODS_VERSION_MAJOR_FFCircularProgressView 0
+#define COCOAPODS_VERSION_MINOR_FFCircularProgressView 5
+#define COCOAPODS_VERSION_PATCH_FFCircularProgressView 0
+
 // HKDFKit
 #define COCOAPODS_POD_AVAILABLE_HKDFKit
 #define COCOAPODS_VERSION_MAJOR_HKDFKit 0
@@ -100,7 +112,7 @@
 #define COCOAPODS_POD_AVAILABLE_JSQSystemSoundPlayer
 #define COCOAPODS_VERSION_MAJOR_JSQSystemSoundPlayer 2
 #define COCOAPODS_VERSION_MINOR_JSQSystemSoundPlayer 0
-#define COCOAPODS_VERSION_PATCH_JSQSystemSoundPlayer 0
+#define COCOAPODS_VERSION_PATCH_JSQSystemSoundPlayer 1
 
 // Mantle
 #define COCOAPODS_POD_AVAILABLE_Mantle
