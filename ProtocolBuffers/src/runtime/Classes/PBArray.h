@@ -72,18 +72,18 @@ typedef enum _PBArrayValueType
 
 @interface PBArray (PBArrayExtended)
 
-- (id)arrayByAppendingArray:(PBArray *)array;
+- (instancetype)arrayByAppendingArray:(PBArray *)array;
 - (PBArray *)filteredArrayUsingPredicate:(NSPredicate *)predicate;
 @end
 
 @interface PBArray (PBArrayCreation)
 
-+ (id)arrayWithValueType:(PBArrayValueType)valueType;
-+ (id)arrayWithValues:(const void *)values count:(NSUInteger)count valueType:(PBArrayValueType)valueType;
-+ (id)arrayWithArray:(NSArray *)array valueType:(PBArrayValueType)valueType;
-- (id)initWithValueType:(PBArrayValueType)valueType;
-- (id)initWithValues:(const void *)values count:(NSUInteger)count valueType:(PBArrayValueType)valueType;
-- (id)initWithArray:(NSArray *)array valueType:(PBArrayValueType)valueType;
++ (instancetype)arrayWithValueType:(PBArrayValueType)valueType;
++ (instancetype)arrayWithValues:(const void *)values count:(NSUInteger)count valueType:(PBArrayValueType)valueType;
++ (instancetype)arrayWithArray:(NSArray *)array valueType:(PBArrayValueType)valueType;
+- (instancetype)initWithValueType:(PBArrayValueType)valueType;
+- (instancetype)initWithValues:(const void *)values count:(NSUInteger)count valueType:(PBArrayValueType)valueType;
+- (instancetype)initWithArray:(NSArray *)array valueType:(PBArrayValueType)valueType;
 
 @end
 

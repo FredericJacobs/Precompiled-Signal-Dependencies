@@ -80,7 +80,7 @@
 - (id<PBExtensionField>) getExtension:(Class) clazz fieldNumber:(SInt32) fieldNumber;
 
 /* @protected */
-- (id) initWithClassMap:(NSDictionary*) classMap;
+- (instancetype) initWithClassMap:(NSDictionary*) classMap;
 - (id) keyForClass:(Class) clazz;
 
 @end

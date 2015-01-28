@@ -28,7 +28,7 @@
 - (PBWireFormat) wireType;
 - (BOOL) isRepeated;
 - (Class) extendedClass;
-- (id) defaultValue;
+- (instancetype) defaultValue;
 
 - (void) mergeFromCodedInputStream:(PBCodedInputStream*) input
                      unknownFields:(PBUnknownFieldSetBuilder*) unknownFields

@@ -29,7 +29,7 @@
 
 
 
-- (id) initWithClassMap:(NSMutableDictionary*) mutableClassMap_ {
+- (instancetype) initWithClassMap:(NSMutableDictionary*) mutableClassMap_ {
   if ((self = [super initWithClassMap:mutableClassMap_])) {
     self.mutableClassMap = mutableClassMap_;
   }

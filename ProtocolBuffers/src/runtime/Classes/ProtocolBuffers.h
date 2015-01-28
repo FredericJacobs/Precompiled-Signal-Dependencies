@@ -38,3 +38,5 @@
 #import "UnknownFieldSetBuilder.h"
 #import "Utilities.h"
 #import "WireFormat.h"
+#import "Descriptor.pb.h"
+#import "ObjectivecDescriptor.pb.h"

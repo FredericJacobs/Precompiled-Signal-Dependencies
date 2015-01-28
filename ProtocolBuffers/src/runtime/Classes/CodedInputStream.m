@@ -49,7 +49,7 @@ const SInt32 BUFFER_SIZE = 4096;
 }
 
 
-- (id) initWithData:(NSData*) data {
+- (instancetype) initWithData:(NSData*) data {
   if ((self = [super init])) {
     self.buffer = [NSMutableData dataWithData:data];
     bufferSize = (UInt32)buffer.length;
@@ -61,7 +61,7 @@ const SInt32 BUFFER_SIZE = 4096;
 }
 
 
-- (id) initWithInputStream:(NSInputStream*) input_ {
+- (instancetype) initWithInputStream:(NSInputStream*) input_ {
   if ((self = [super init])) {
     self.buffer = [NSMutableData dataWithLength:BUFFER_SIZE];
     bufferSize = 0;

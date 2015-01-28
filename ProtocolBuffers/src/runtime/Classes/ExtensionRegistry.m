@@ -35,7 +35,7 @@ static PBExtensionRegistry* emptyRegistry = nil;
 }
 
 
-- (id) initWithClassMap:(NSDictionary*) map_{
+- (instancetype) initWithClassMap:(NSDictionary*) map_{
   if ((self = [super init])) {
     self.classMap = map_;
   }

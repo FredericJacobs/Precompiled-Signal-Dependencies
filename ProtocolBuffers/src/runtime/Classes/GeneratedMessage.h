@@ -25,6 +25,17 @@
  *
  * @author Cyrus Najmabadi
  */
+@class PBExtensionRegistry;
+@class PBCodedInputStream;
+@protocol GeneratedMessageProtocol <PBMessage>
++ (id<GeneratedMessageProtocol>) parseFromData:(NSData*) data;
++ (id<GeneratedMessageProtocol>) parseFromData:(NSData*) data extensionRegistry:(PBExtensionRegistry*)extensionRegistry;
++ (id<GeneratedMessageProtocol>) parseFromInputStream:(NSInputStream*) input;
++ (id<GeneratedMessageProtocol>) parseFromInputStream:(NSInputStream*) input extensionRegistry:(PBExtensionRegistry*) extensionRegistry;
++ (id<GeneratedMessageProtocol>) parseFromCodedInputStream:(PBCodedInputStream*) input;
++ (id<GeneratedMessageProtocol>) parseFromCodedInputStream:(PBCodedInputStream*) input extensionRegistry:(PBExtensionRegistry*) extensionRegistry;
+@end
+
 @interface PBGeneratedMessage : PBAbstractMessage {
 @private
   PBUnknownFieldSet* unknownFields;

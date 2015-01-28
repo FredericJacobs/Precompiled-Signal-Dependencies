@@ -2,7 +2,7 @@
 
 @implementation RingBuffer
 
-- (id)initWithData:(NSMutableData*)data {
+- (instancetype)initWithData:(NSMutableData*)data {
   if ((self = [super init])) {
       buffer = data;
   }

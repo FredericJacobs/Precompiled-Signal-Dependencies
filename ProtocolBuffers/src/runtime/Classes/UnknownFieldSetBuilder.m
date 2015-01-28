@@ -37,7 +37,7 @@
 @synthesize lastField;
 
 
-- (id) init {
+- (instancetype) init {
   if ((self = [super init])) {
     self.fields = [NSMutableDictionary dictionary];
   }

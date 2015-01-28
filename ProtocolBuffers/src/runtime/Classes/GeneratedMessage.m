@@ -28,7 +28,7 @@
 
 @synthesize unknownFields;
 
-- (id) init {
+- (instancetype) init {
   if ((self = [super init])) {
     self.unknownFields = [PBUnknownFieldSet defaultInstance];
     memoizedSerializedSize = -1;

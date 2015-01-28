@@ -49,7 +49,7 @@
 
 
 
-- (id)     initWithType:(PBExtensionType) type_
+- (instancetype) initWithType:(PBExtensionType) type_
           extendedClass:(Class) extendedClass_
             fieldNumber:(SInt32) fieldNumber_
            defaultValue:(id) defaultValue_

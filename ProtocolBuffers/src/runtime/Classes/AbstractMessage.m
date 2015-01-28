@@ -21,7 +21,7 @@
 
 @implementation PBAbstractMessage
 
-- (id) init {
+- (instancetype) init {
   if ((self = [super init])) {
   }
 
@@ -59,7 +59,7 @@
 }
 
 
-- (id<PBMessage>) defaultInstance {
+- (instancetype) defaultInstance {
   @throw [NSException exceptionWithName:@"ImproperSubclassing" reason:@"" userInfo:nil];
 }
 

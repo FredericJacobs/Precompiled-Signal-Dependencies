@@ -118,13 +118,13 @@
 #define COCOAPODS_POD_AVAILABLE_Mantle
 #define COCOAPODS_VERSION_MAJOR_Mantle 1
 #define COCOAPODS_VERSION_MINOR_Mantle 5
-#define COCOAPODS_VERSION_PATCH_Mantle 1
+#define COCOAPODS_VERSION_PATCH_Mantle 4
 
 // Mantle/extobjc
 #define COCOAPODS_POD_AVAILABLE_Mantle_extobjc
 #define COCOAPODS_VERSION_MAJOR_Mantle_extobjc 1
 #define COCOAPODS_VERSION_MINOR_Mantle_extobjc 5
-#define COCOAPODS_VERSION_PATCH_Mantle_extobjc 1
+#define COCOAPODS_VERSION_PATCH_Mantle_extobjc 4
 
 // OpenSSL
 #define COCOAPODS_POD_AVAILABLE_OpenSSL
@@ -142,7 +142,7 @@
 #define COCOAPODS_POD_AVAILABLE_ProtocolBuffers
 #define COCOAPODS_VERSION_MAJOR_ProtocolBuffers 1
 #define COCOAPODS_VERSION_MINOR_ProtocolBuffers 9
-#define COCOAPODS_VERSION_PATCH_ProtocolBuffers 3
+#define COCOAPODS_VERSION_PATCH_ProtocolBuffers 7
 
 // SCWaveformView
 #define COCOAPODS_POD_AVAILABLE_SCWaveformView
@@ -208,5 +208,5 @@
 #define COCOAPODS_POD_AVAILABLE_libPhoneNumber_iOS
 #define COCOAPODS_VERSION_MAJOR_libPhoneNumber_iOS 0
 #define COCOAPODS_VERSION_MINOR_libPhoneNumber_iOS 7
-#define COCOAPODS_VERSION_PATCH_libPhoneNumber_iOS 5
+#define COCOAPODS_VERSION_PATCH_libPhoneNumber_iOS 6
 
