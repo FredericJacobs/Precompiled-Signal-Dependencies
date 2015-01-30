@@ -116,8 +116,11 @@ static NSString *newSHA1String(const char *bytes, size_t length) {
     if ([data respondsToSelector:@selector(base64EncodedStringWithOptions:)]) {
         return [data base64EncodedStringWithOptions:0];
     }
-    
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     return [data base64Encoding];
+#pragma clang diagnostic pop
 }
 
 @implementation NSData (SRWebSocket)
@@ -509,7 +512,10 @@ static __strong NSData *CRLFCRLF;
     if ([keyBytes respondsToSelector:@selector(base64EncodedStringWithOptions:)]) {
         _secKey = [keyBytes base64EncodedStringWithOptions:0];
     } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         _secKey = [keyBytes base64Encoding];
+#pragma clang diagnostic pop
     }
     
     assert([_secKey length] == 24);
@@ -1377,6 +1383,16 @@ static const size_t SRFrameHeaderOverhead = 32;
     
     [self _writeData:frame];
 }
+static BOOL evaluateServerTrust(SecTrustRef serverTrust) {
+    BOOL isValid = NO;
+    SecTrustResultType result;
+
+    OSStatus status = SecTrustEvaluate(serverTrust, &result);
+    
+    isValid = ((result == kSecTrustResultUnspecified || result == kSecTrustResultProceed) && status == 0);
+
+    return isValid;
+}
 
 - (void)stream:(NSStream *)aStream handleEvent:(NSStreamEvent)eventCode;
 {
@@ -1384,26 +1400,10 @@ static const size_t SRFrameHeaderOverhead = 32;
         
         NSArray *sslCerts = [_urlRequest SR_SSLPinnedCertificates];
         if (sslCerts) {
-            SecTrustRef secTrust = (__bridge SecTrustRef)[aStream propertyForKey:(__bridge id)kCFStreamPropertySSLPeerTrust];
-            if (secTrust) {
-                NSInteger numCerts = SecTrustGetCertificateCount(secTrust);
-                for (NSInteger i = 0; i < numCerts && !_pinnedCertFound; i++) {
-                    SecCertificateRef cert = SecTrustGetCertificateAtIndex(secTrust, i);
-                    NSData *certData = CFBridgingRelease(SecCertificateCopyData(cert));
-                    
-                    for (id ref in sslCerts) {
-                        SecCertificateRef trustedCert = (__bridge SecCertificateRef)ref;
-                        NSData *trustedCertData = CFBridgingRelease(SecCertificateCopyData(trustedCert));
-                        
-                        if ([trustedCertData isEqualToData:certData]) {
-                            _pinnedCertFound = YES;
-                            break;
-                        }
-                    }
-                }
-            }
+            SecTrustRef serverTrust = (__bridge SecTrustRef)[aStream propertyForKey:(__bridge id)kCFStreamPropertySSLPeerTrust];
+            SecTrustSetAnchorCertificates(serverTrust, (__bridge CFArrayRef)sslCerts);
             
-            if (!_pinnedCertFound) {
+            if (!evaluateServerTrust(serverTrust)) {
                 dispatch_async(_workQueue, ^{
                     [self _failWithError:[NSError errorWithDomain:SRWebSocketErrorDomain code:23556 userInfo:[NSDictionary dictionaryWithObject:[NSString stringWithFormat:@"Invalid server cert"] forKey:NSLocalizedDescriptionKey]]];
                 });

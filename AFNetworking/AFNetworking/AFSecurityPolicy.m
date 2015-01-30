@@ -108,6 +108,16 @@ _out:
     return allowedPublicKey;
 }
 
+
+#ifndef AF_Require_noErr
+#define AF_Require_noErr(errorCode, exceptionLabel)          \
+do {                                                     \
+if (__builtin_expect(0 != (errorCode), 0)) {         \
+goto exceptionLabel;                             \
+}                                                    \
+} while (0)
+#endif
+
 static BOOL AFServerTrustIsValid(SecTrustRef serverTrust) {
     BOOL isValid = NO;
     SecTrustResultType result;
