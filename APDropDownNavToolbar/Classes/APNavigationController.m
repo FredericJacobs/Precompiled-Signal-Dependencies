@@ -30,7 +30,7 @@
 {
     [super viewDidLoad];
 	// Do any additional setup after loading the view.
-    self.dropDownToolbar = [[UIToolbar alloc] initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, 66)];
+    self.dropDownToolbar = [[UIToolbar alloc] initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, 64)];
     self.dropDownToolbar.autoresizingMask = UIViewAutoresizingFlexibleWidth;
     self.dropDownToolbar.tintColor = self.navigationBar.tintColor;
     [self.navigationBar.superview insertSubview:self.dropDownToolbar belowSubview:self.navigationBar];
