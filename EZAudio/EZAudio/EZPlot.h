@@ -39,15 +39,7 @@ typedef NS_ENUM(NSInteger,EZPlotType){
   /**
    Plot that displays a rolling history of values using the RMS calculated for each incoming buffer
    */
-  EZPlotTypeRolling,
-  /**
-   Plot that displays a rolling history of values in blocks
-   */
-  EZPlotTypeRollingBlock,
-  /**
-   Plot that diaplays a rolling history of values in blocks scrolling from the right.
-   */
-  EZPlotTypeRollingBlockRight
+  EZPlotTypeRolling
 };
 
 /**
@@ -98,26 +90,6 @@ typedef NS_ENUM(NSInteger,EZPlotType){
  A boolean indicating whether the graph should be rotated along the x-axis to give a mirrored reflection. This is typical for audio plots to produce the classic waveform look. A value of YES will produce a mirrored reflection of the y-values about the x-axis, while a value of NO will only plot the y-values.
  */
 @property (nonatomic,assign,setter=setShouldMirror:) BOOL shouldMirror;
-
-/**
- An int that sets how fast the graph will scroll by changing the number of frames per block
- */
-@property (nonatomic, assign, setter=setPlotSpeed:) int plotSpeed;
-
-/**
- A float that sets how much progress is highlighted in the waveform.
- */
-@property (nonatomic, assign, setter=setProgress:) float progress;
-
-/**
- A flag that determines whether the waveform will scroll one direction
- */
-@property (nonatomic) BOOL oneWay;
-
-/**
- The color of progress
- */
-@property (nonatomic, strong, setter=setProgressColor:) UIColor *progressColor;
 
 #pragma mark - Clearing
 ///-----------------------------------------------------------

@@ -79,7 +79,4 @@
 -(void)setSampleData:(float *)data
               length:(int)length;
 
--(void)generateWaveform:(float *)data
-                 length:(int)length;
-
 @end

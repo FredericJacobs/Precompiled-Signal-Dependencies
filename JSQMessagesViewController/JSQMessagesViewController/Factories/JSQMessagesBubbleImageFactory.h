@@ -73,7 +73,4 @@
  */
 - (JSQMessagesBubbleImage *)incomingMessagesBubbleImageWithColor:(UIColor *)color;
 
-
-- (JSQMessagesBubbleImage *)outgoingMessageFailedBubbleImageWithColor:(UIColor *)color;
-
 @end
