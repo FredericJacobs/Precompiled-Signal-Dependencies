@@ -120,7 +120,11 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		// So we can skip all the checks because we know we need to create the memory tables.
 		
 		if (![self createTables]) return NO;
-		if (![self populateView]) return NO;
+		
+		if (!viewConnection->view->options.skipInitialViewPopulation)
+		{
+			if (![self populateView]) return NO;
+		}
 		
 		// Store initial versionTag in prefs table
 		
@@ -166,7 +170,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			// First time registration
 			
 			needsCreateTables = YES;
-			needsPopulateView = YES;
+			needsPopulateView = !viewConnection->view->options.skipInitialViewPopulation;
 		}
 		else if (oldClassVersion != classVersion)
 		{
@@ -174,7 +178,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			
 			[self dropTablesForOldClassVersion:oldClassVersion];
 			needsCreateTables = YES;
-			needsPopulateView = YES;
+			needsPopulateView = YES; // Not initialViewPopulation, but rather codebase upgrade.
 		}
 	
 		// Create the database tables (if needed)
@@ -215,7 +219,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			
 			if (![oldVersionTag isEqualToString:versionTag])
 			{
-				needsPopulateView = YES;
+				needsPopulateView = YES; // Not initialViewPopulation, but rather versionTag upgrade.
 			}
 		}
 		
@@ -1277,7 +1281,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 				// This rowid has already been removed from the view,
 				// and is marked for deletion from the mapTable.
 				//
-				// However, it has not been deleted yet, as that will occur during commitTransaction.
+				// However, it has not been deleted yet, as that will occur during flushPendingChangesToExtensionTables.
 				// So we need to remove it from inRowids, as the mapTable will still contain the rowid.
 				
 				[inRowids removeObjectAtIndex:i];
@@ -1397,11 +1401,10 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			{
 				YDBLogError(@"%@ (%@): Error executing statement: %d %s",
 				            THIS_METHOD, [self registeredName], status, sqlite3_errmsg(db));
-				
-				*rowidsPtr = nil;
-				return nil;
 			}
 		
+			sqlite3_finalize(statement);
+			
 		}
 		else // if (isNonPersistentView)
 		{
@@ -2781,12 +2784,13 @@ static NSString *const ExtKey_version_deprecated = @"version";
 }
 
 /**
- * This method is only called if within a readwrite transaction.
- *
- * Extensions may implement it to perform any "cleanup" before the changeset is requested.
- * Remember, the changeset is requested before the commitTransaction method is invoked.
+ * This method performs the appropriate actions in order to keep the pages of an appropriate size.
+ * Specifically it does the following:
+ * 
+ * - Splits oversized pages to hit our target max_page_size
+ * - Drops empty pages to reduce disk usage
 **/
-- (void)prepareChangeset
+- (void)cleanupPages
 {
 	YDBLogAutoTrace();
 	
@@ -2836,9 +2840,22 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	}
 }
 
-- (void)commitTransaction
+/**
+ * Subclasses MUST implement this method.
+ * This method is only called if within a readwrite transaction.
+ *
+ * Subclasses should write any last changes to their database table(s) if needed,
+ * and should perform any needed cleanup before the changeset is requested.
+ *
+ * Remember, the changeset is requested immediately after this method is invoked.
+**/
+- (void)flushPendingChangesToExtensionTables
 {
 	YDBLogAutoTrace();
+	
+	// Cleanup pages (as needed)
+	
+	[self cleanupPages];
 	
 	// During the transaction we stored all changes in the "dirty" dictionaries.
 	// This allows the view to make multiple changes to a page, yet only write it once.
@@ -3295,6 +3312,11 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		[pageTableTransaction commit];
 		[pageMetadataTableTransaction commit];
 	}
+}
+
+- (void)didCommitTransaction
+{
+	YDBLogAutoTrace();
 	
 	// Commit is complete.
 	// Forward to connection for further cleanup.
@@ -3310,8 +3332,10 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	databaseTransaction = nil; // Do not remove !
 }
 
-- (void)rollbackTransaction
+- (void)didRollbackTransaction
 {
+	YDBLogAutoTrace();
+	
 	if (![self isPersistentView])
 	{
 		[mapTableTransaction rollback];
@@ -5192,10 +5216,10 @@ static NSString *const ExtKey_version_deprecated = @"version";
 - (void)enumerateKeysAndMetadataInGroup:(NSString *)group
                             withOptions:(NSEnumerationOptions)options
                                   range:(NSRange)range
+                                 filter:
+                    (BOOL (^)(NSString *collection, NSString *key))filter
                              usingBlock:
                     (void (^)(NSString *collection, NSString *key, id metadata, NSUInteger index, BOOL *stop))block
-                             withFilter:
-                    (BOOL (^)(NSString *collection, NSString *key))filter
 {
 	if (filter == NULL) {
 		[self enumerateKeysAndMetadataInGroup:group withOptions:options range:range usingBlock:block];
@@ -5282,10 +5306,10 @@ static NSString *const ExtKey_version_deprecated = @"version";
 - (void)enumerateKeysAndObjectsInGroup:(NSString *)group
                            withOptions:(NSEnumerationOptions)options
                                  range:(NSRange)range
+                                filter:
+            (BOOL (^)(NSString *collection, NSString *key))filter
                             usingBlock:
             (void (^)(NSString *collection, NSString *key, id object, NSUInteger index, BOOL *stop))block
-                            withFilter:
-            (BOOL (^)(NSString *collection, NSString *key))filter
 {
 	if (filter == NULL) {
 		[self enumerateKeysAndObjectsInGroup:group withOptions:options range:range usingBlock:block];
@@ -5375,10 +5399,10 @@ static NSString *const ExtKey_version_deprecated = @"version";
 - (void)enumerateRowsInGroup:(NSString *)group
                  withOptions:(NSEnumerationOptions)options
                        range:(NSRange)range
+                      filter:
+            (BOOL (^)(NSString *collection, NSString *key))filter
                   usingBlock:
             (void (^)(NSString *collection, NSString *key, id object, id metadata, NSUInteger index, BOOL *stop))block
-                  withFilter:
-            (BOOL (^)(NSString *collection, NSString *key))filter
 {
 	if (filter == NULL) {
 		[self enumerateRowsInGroup:group withOptions:options range:range usingBlock:block];

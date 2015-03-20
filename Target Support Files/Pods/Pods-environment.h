@@ -195,18 +195,18 @@
 // YapDatabase/SQLCipher
 #define COCOAPODS_POD_AVAILABLE_YapDatabase_SQLCipher
 #define COCOAPODS_VERSION_MAJOR_YapDatabase_SQLCipher 2
-#define COCOAPODS_VERSION_MINOR_YapDatabase_SQLCipher 5
-#define COCOAPODS_VERSION_PATCH_YapDatabase_SQLCipher 4
+#define COCOAPODS_VERSION_MINOR_YapDatabase_SQLCipher 6
+#define COCOAPODS_VERSION_PATCH_YapDatabase_SQLCipher 0
 
 // YapDatabase/common
 #define COCOAPODS_POD_AVAILABLE_YapDatabase_common
 #define COCOAPODS_VERSION_MAJOR_YapDatabase_common 2
-#define COCOAPODS_VERSION_MINOR_YapDatabase_common 5
-#define COCOAPODS_VERSION_PATCH_YapDatabase_common 4
+#define COCOAPODS_VERSION_MINOR_YapDatabase_common 6
+#define COCOAPODS_VERSION_PATCH_YapDatabase_common 0
 
 // libPhoneNumber-iOS
 #define COCOAPODS_POD_AVAILABLE_libPhoneNumber_iOS
 #define COCOAPODS_VERSION_MAJOR_libPhoneNumber_iOS 0
 #define COCOAPODS_VERSION_MINOR_libPhoneNumber_iOS 8
-#define COCOAPODS_VERSION_PATCH_libPhoneNumber_iOS 2
+#define COCOAPODS_VERSION_PATCH_libPhoneNumber_iOS 4
 

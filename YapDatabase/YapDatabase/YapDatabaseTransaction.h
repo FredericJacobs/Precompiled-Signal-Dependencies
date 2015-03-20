@@ -6,10 +6,10 @@
  * Welcome to YapDatabase!
  *
  * The project page has a wealth of documentation if you have any questions.
- * https://github.com/yaptv/YapDatabase
+ * https://github.com/yapstudios/YapDatabase
  *
  * If you're new to the project you may want to visit the wiki.
- * https://github.com/yaptv/YapDatabase/wiki
+ * https://github.com/yapstudios/YapDatabase/wiki
  * 
  * Transactions represent atomic access to a database.
  * There are two types of transactions:
@@ -61,6 +61,15 @@
  * and reduces the overhead associated in creating them.
 **/
 @property (nonatomic, unsafe_unretained, readonly) YapDatabaseConnection *connection;
+
+/**
+ * The userInfo property allows arbitrary info to be associated with the transaction.
+ * This propery is not used by YapDatabaseTransaction in any way.
+ * 
+ * Keep in mind that transactions are short lived objects.
+ * Each transaction is a new/different transaction object.
+**/
+@property (nonatomic, strong, readwrite) id userInfo;
 
 #pragma mark Count
 
@@ -458,7 +467,7 @@
  * as opposed to broadcasting your own separate notification.
  * 
  * For more information, and code samples, please see the wiki article:
- * https://github.com/yaptv/YapDatabase/wiki/YapDatabaseModifiedNotification
+ * https://github.com/yapstudios/YapDatabase/wiki/YapDatabaseModifiedNotification
 **/
 @property (nonatomic, strong, readwrite) id yapDatabaseModifiedNotificationCustomObject;
 

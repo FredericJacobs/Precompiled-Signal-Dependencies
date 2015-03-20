@@ -4,10 +4,10 @@
  * Welcome to YapDatabase!
  *
  * The project page has a wealth of documentation if you have any questions.
- * https://github.com/yaptv/YapDatabase
+ * https://github.com/yapstudios/YapDatabase
  *
  * If you're new to the project you may want to visit the wiki.
- * https://github.com/yaptv/YapDatabase/wiki
+ * https://github.com/yapstudios/YapDatabase/wiki
  * 
  * This class provides extra configuration options that may be passed to YapDatabase.
  * The configuration options provided by this class are advanced (beyond the basic setup options).
@@ -26,7 +26,7 @@ typedef NS_ENUM(NSInteger, YapDatabasePragmaSynchronous) {
 };
 
 #ifdef SQLITE_HAS_CODEC
-typedef NSString* (^YapDatabaseOptionsPassphraseBlock)(void);
+typedef NSData* (^YapDatabaseCipherKeyBlock)(void);
 #endif
 
 @interface YapDatabaseOptions : NSObject <NSCopying>
@@ -78,15 +78,18 @@ typedef NSString* (^YapDatabaseOptionsPassphraseBlock)(void);
 
 #ifdef SQLITE_HAS_CODEC
 /**
- * Set a block here that returns the passphrase for the SQLCipher
- * database. This way you can fetch the passphrase from the keychain
- * (or elsewhere) only when you need it, instead of persisting 
- * it in memory.
+ * Set a block here that returns the key for the SQLCipher database.
+ *
+ * This is the key that will be passed to SQLCipher via the sqlite3_key method:
+ * https://www.zetetic.net/sqlcipher/sqlcipher-api/#sqlite3_key
+ * 
+ * This block allows you can fetch the passphrase from the keychain (or elsewhere)
+ * only when you need it, instead of persisting it in memory.
  *
  * You must use the 'YapDatabase/SQLCipher' subspec
  * in your Podfile for this option to take effect.
  **/
-@property (nonatomic, copy) YapDatabaseOptionsPassphraseBlock passphraseBlock;
+@property (nonatomic, copy) YapDatabaseCipherKeyBlock cipherKeyBlock;
 #endif
 
 @end

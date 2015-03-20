@@ -9,10 +9,10 @@
  * Welcome to YapDatabase!
  *
  * The project page has a wealth of documentation if you have any questions.
- * https://github.com/yaptv/YapDatabase
+ * https://github.com/yapstudios/YapDatabase
  *
  * If you're new to the project you may want to visit the wiki.
- * https://github.com/yaptv/YapDatabase/wiki
+ * https://github.com/yapstudios/YapDatabase/wiki
  *
  * The YapDatabase class is the top level class used to initialize the database.
  * It largely represents the immutable aspects of the database such as:
@@ -30,7 +30,7 @@
  * How does YapDatabase store my objects to disk?
  *
  * That question is answered extensively in the wiki article "Storing Objects":
- * https://github.com/yaptv/YapDatabase/wiki/Storing-Objects
+ * https://github.com/yapstudios/YapDatabase/wiki/Storing-Objects
  *
  * Here's the intro from the wiki article:
  *
@@ -60,23 +60,46 @@ typedef NSData* (^YapDatabaseSerializer)(NSString *collection, NSString *key, id
 typedef id (^YapDatabaseDeserializer)(NSString *collection, NSString *key, NSData *data);
 
 /**
- * Is it safe to store mutable objects in the database?
+ * The sanitizer block allows you to enforce desired behavior of the objects you put into the database.
  *
- * That question is answered extensively in the wiki article "Thread Safety":
- * https://github.com/yaptv/YapDatabase/wiki/Thread-Safety
+ * If set, the sanitizer block will be run on all items being input into the database via
+ * the setObject:forKey:inCollection: (and other setObject:XXX: methods).
+ * 
+ * You have 2 different hooks for running a sanitizer block:
  *
- * The sanitizer block can be run on all objects as they are being input into the database.
- * That is, it will be run on all objects passed to setObject:forKey:inCollection: before
- * being handed to the database internals.
+ * The PreSanitizer is run:
+ * - Before the object is serialized
+ * - Before the object is stored in the cache
+ * - Before the object is passed to extensions
+ * 
+ * The PostSanitizer is run:
+ * - After the object has been serialized
+ * - After the object has been stored in the cache
+ * - After the object has been passed to extensions
+ *
+ * The PreSanitizer is generally used validate the objects going into the database,
+ * and/or to enforce immutability of those objects.
+ *
+ * Enforcing immutability is a topic covered in the "Object Policy" wiki article:
+ * https://github.com/yapstudios/YapDatabase/wiki/Object-Policy
+ *
+ * The PostSanitizer is generally used to "clear flags" that are used by extensions.
+ * For example, your objects might have a "changedProperties" property that tells extensions exactly
+ * what properties where changed on a modified object. And the extension uses that information
+ * in order to automatically sync the changes to the cloud. Thus the PostSanitizer would be used
+ * to clear the "changedProperties" after the extension has processed the modified object.
+ * 
+ * An example of such a use for the PostSanitizer is discussed in the YapDatabaseCloudKit wiki article:
+ * https://github.com/yapstudios/YapDatabase/wiki/YapDatabaseCloudKit
 **/
-typedef id (^YapDatabaseSanitizer)(NSString *collection, NSString *key, id object);
-
+typedef id (^YapDatabasePreSanitizer)(NSString *collection, NSString *key, id obj);
+typedef void (^YapDatabasePostSanitizer)(NSString *collection, NSString *key, id obj);
 
 /**
  * This notification is posted following a readwrite transaction where the database was modified.
  * 
  * It is documented in more detail in the wiki article "YapDatabaseModifiedNotification":
- * https://github.com/yaptv/YapDatabase/wiki/YapDatabaseModifiedNotification
+ * https://github.com/yapstudios/YapDatabase/wiki/YapDatabaseModifiedNotification
  *
  * The notification object will be the database instance itself.
  * That is, it will be an instance of YapDatabase.
@@ -187,7 +210,9 @@ extern NSString *const YapDatabaseAllKeysRemovedKey;
 - (id)initWithPath:(NSString *)path
         serializer:(YapDatabaseSerializer)serializer
       deserializer:(YapDatabaseDeserializer)deserializer
-         sanitizer:(YapDatabaseSanitizer)sanitizer;
+      preSanitizer:(YapDatabasePreSanitizer)preSanitizer
+     postSanitizer:(YapDatabasePostSanitizer)postSanitizer
+           options:(YapDatabaseOptions *)options;
 
 /**
  * Opens or creates a sqlite database with the given path.
@@ -208,8 +233,7 @@ extern NSString *const YapDatabaseAllKeysRemovedKey;
                                   objectDeserializer:(YapDatabaseDeserializer)objectDeserializer
                                   metadataSerializer:(YapDatabaseSerializer)metadataSerializer
                                 metadataDeserializer:(YapDatabaseDeserializer)metadataDeserializer
-                                     objectSanitizer:(YapDatabaseSanitizer)objectSanitizer
-                                   metadataSanitizer:(YapDatabaseSanitizer)metadataSanitizer;
+                                             options:(YapDatabaseOptions *)options;
 
 /**
  * Opens or creates a sqlite database with the given path.
@@ -220,8 +244,10 @@ extern NSString *const YapDatabaseAllKeysRemovedKey;
                                   objectDeserializer:(YapDatabaseDeserializer)objectDeserializer
                                   metadataSerializer:(YapDatabaseSerializer)metadataSerializer
                                 metadataDeserializer:(YapDatabaseDeserializer)metadataDeserializer
-                                     objectSanitizer:(YapDatabaseSanitizer)objectSanitizer
-                                   metadataSanitizer:(YapDatabaseSanitizer)metadataSanitizer
+                                  objectPreSanitizer:(YapDatabasePreSanitizer)objectPreSanitizer
+                                 objectPostSanitizer:(YapDatabasePostSanitizer)objectPostSanitizer
+                                metadataPreSanitizer:(YapDatabasePreSanitizer)metadataPreSanitizer
+                               metadataPostSanitizer:(YapDatabasePostSanitizer)metadataPostSanitizer
                                              options:(YapDatabaseOptions *)options;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -236,8 +262,11 @@ extern NSString *const YapDatabaseAllKeysRemovedKey;
 @property (nonatomic, strong, readonly) YapDatabaseSerializer metadataSerializer;
 @property (nonatomic, strong, readonly) YapDatabaseDeserializer metadataDeserializer;
 
-@property (nonatomic, strong, readonly) YapDatabaseSanitizer objectSanitizer;
-@property (nonatomic, strong, readonly) YapDatabaseSanitizer metadataSanitizer;
+@property (nonatomic, strong, readonly) YapDatabasePreSanitizer objectPreSanitizer;
+@property (nonatomic, strong, readonly) YapDatabasePostSanitizer objectPostSanitizer;
+
+@property (nonatomic, strong, readonly) YapDatabasePreSanitizer metadataPreSanitizer;
+@property (nonatomic, strong, readonly) YapDatabasePostSanitizer metadataPostSanitizer;
 
 @property (nonatomic, copy, readonly) YapDatabaseOptions *options;
 
@@ -301,6 +330,11 @@ extern NSString *const YapDatabaseAllKeysRemovedKey;
  * However, it may come in handy for some tricky edge-case bugs (why doesn't my connection see that other commit?)
 **/
 @property (atomic, assign, readonly) uint64_t snapshot;
+
+/**
+ * Returns the version of sqlite being used.
+**/
+@property (atomic, strong, readonly) NSString *sqliteVersion;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Defaults
@@ -420,9 +454,18 @@ extern NSString *const YapDatabaseAllKeysRemovedKey;
  * Registers the extension with the database using the given name.
  * After registration everything works automatically using just the extension name.
  * 
- * The registration process is equivalent to a readwrite transaction.
+ * The registration process is equivalent to a (synchronous) readwrite transaction.
  * It involves persisting various information about the extension to the database,
  * as well as possibly populating the extension by enumerating existing rows in the database.
+ *
+ * @param extension
+ *     The YapDatabaseExtension subclass instance you wish to register.
+ *     For example, this might be a YapDatabaseView instance.
+ * 
+ * @param extensionName
+ *     This is an arbitrary string you assign to the extension.
+ *     Once registered, you will generally access the extension instance via this name.
+ *     For example: [[transaction ext:@"myView"] numberOfGroups];
  *
  * @return
  *     YES if the extension was properly registered.
@@ -434,17 +477,56 @@ extern NSString *const YapDatabaseAllKeysRemovedKey;
 - (BOOL)registerExtension:(YapDatabaseExtension *)extension withName:(NSString *)extensionName;
 
 /**
- * Asynchronoulsy starts the extension registration process.
+ * Registers the extension with the database using the given name.
  * After registration everything works automatically using just the extension name.
- * 
- * The registration process is equivalent to a readwrite transaction.
+ *
+ * The registration process is equivalent to a (synchronous) readwrite transaction.
  * It involves persisting various information about the extension to the database,
  * as well as possibly populating the extension by enumerating existing rows in the database.
  * 
- * An optional completion block may be used.
- * If the extension registration was successful then the ready parameter will be YES.
+ * @param extension (required)
+ *     The YapDatabaseExtension subclass instance you wish to register.
+ *     For example, this might be a YapDatabaseView instance.
  *
- * The completionBlock will be invoked on the main thread (dispatch_get_main_queue()).
+ * @param extensionName (required)
+ *     This is an arbitrary string you assign to the extension.
+ *     Once registered, you will generally access the extension instance via this name.
+ *     For example: [[transaction ext:@"myView"] numberOfGroups];
+ * 
+ * @param connection (optional)
+ *     You may optionally pass your own databaseConnection for this method to use.
+ *     This allows you to control things such as the cache size of the connection that performs
+ *     the extension registration code (sometimes important for performance tuning.)
+ *     If you pass nil, an internal databaseConnection will automatically be used.
+ * 
+ * @see asyncRegisterExtension:withName:completionBlock:
+ * @see asyncRegisterExtension:withName:completionQueue:completionBlock:
+**/
+- (BOOL)registerExtension:(YapDatabaseExtension *)extension
+                 withName:(NSString *)extensionName
+               connection:(YapDatabaseConnection *)connection;
+
+/**
+ * Asynchronoulsy starts the extension registration process.
+ * After registration everything works automatically using just the extension name.
+ * 
+ * The registration process is equivalent to an asyncReadwrite transaction.
+ * It involves persisting various information about the extension to the database,
+ * as well as possibly populating the extension by enumerating existing rows in the database.
+ * 
+ * @param extension (required)
+ *     The YapDatabaseExtension subclass instance you wish to register.
+ *     For example, this might be a YapDatabaseView instance.
+ *
+ * @param extensionName (required)
+ *     This is an arbitrary string you assign to the extension.
+ *     Once registered, you will generally access the extension instance via this name.
+ *     For example: [[transaction ext:@"myView"] numberOfGroups];
+ *
+ * @param completionBlock (optional)
+ *     An optional completion block may be used.
+ *     If the extension registration was successful then the ready parameter will be YES.
+ *     The completionBlock will be invoked on the main thread (dispatch_get_main_queue()).
 **/
 - (void)asyncRegisterExtension:(YapDatabaseExtension *)extension
 					  withName:(NSString *)extensionName
@@ -454,18 +536,66 @@ extern NSString *const YapDatabaseAllKeysRemovedKey;
  * Asynchronoulsy starts the extension registration process.
  * After registration everything works automatically using just the extension name.
  *
- * The registration process is equivalent to a readwrite transaction.
+ * The registration process is equivalent to an asyncReadwrite transaction.
  * It involves persisting various information about the extension to the database,
  * as well as possibly populating the extension by enumerating existing rows in the database.
  * 
- * An optional completion block may be used.
- * If the extension registration was successful then the ready parameter will be YES.
- * 
- * Additionally the dispatch_queue to invoke the completion block may also be specified.
- * If NULL, dispatch_get_main_queue() is automatically used.
+ * @param extension (required)
+ *     The YapDatabaseExtension subclass instance you wish to register.
+ *     For example, this might be a YapDatabaseView instance.
+ *
+ * @param extensionName (required)
+ *     This is an arbitrary string you assign to the extension.
+ *     Once registered, you will generally access the extension instance via this name.
+ *     For example: [[transaction ext:@"myView"] numberOfGroups];
+ *
+ * @param completionQueue (optional)
+ *     The dispatch_queue to invoke the completion block may optionally be specified.
+ *     If NULL, dispatch_get_main_queue() is automatically used.
+ *
+ * @param completionBlock (optional)
+ *     An optional completion block may be used.
+ *     If the extension registration was successful then the ready parameter will be YES.
 **/
 - (void)asyncRegisterExtension:(YapDatabaseExtension *)extension
                       withName:(NSString *)extensionName
+               completionQueue:(dispatch_queue_t)completionQueue
+               completionBlock:(void(^)(BOOL ready))completionBlock;
+
+/**
+ * Asynchronoulsy starts the extension registration process.
+ * After registration everything works automatically using just the extension name.
+ *
+ * The registration process is equivalent to an asyncReadwrite transaction.
+ * It involves persisting various information about the extension to the database,
+ * as well as possibly populating the extension by enumerating existing rows in the database.
+ * 
+ * @param extension (required)
+ *     The YapDatabaseExtension subclass instance you wish to register.
+ *     For example, this might be a YapDatabaseView instance.
+ *
+ * @param extensionName (required)
+ *     This is an arbitrary string you assign to the extension.
+ *     Once registered, you will generally access the extension instance via this name.
+ *     For example: [[transaction ext:@"myView"] numberOfGroups];
+ * 
+ * @param connection (optional)
+ *     You may optionally pass your own databaseConnection for this method to use.
+ *     This allows you to control things such as the cache size of the connection that performs
+ *     the extension registration code (sometimes important for performance tuning.)
+ *     If you pass nil, an internal databaseConnection will automatically be used.
+ *
+ * @param completionQueue (optional)
+ *     The dispatch_queue to invoke the completion block may optionally be specified.
+ *     If NULL, dispatch_get_main_queue() is automatically used.
+ *
+ * @param completionBlock (optional)
+ *     An optional completion block may be used.
+ *     If the extension registration was successful then the ready parameter will be YES.
+**/
+- (void)asyncRegisterExtension:(YapDatabaseExtension *)extension
+                      withName:(NSString *)extensionName
+                    connection:(YapDatabaseConnection *)connection
                completionQueue:(dispatch_queue_t)completionQueue
                completionBlock:(void(^)(BOOL ready))completionBlock;
 
@@ -506,6 +636,13 @@ __attribute((deprecated("Use method asyncRegisterExtension:withName:completionQu
  * This method unregisters an extension with the given name.
  * The associated underlying tables will be dropped from the database.
  * 
+ * The unregistration process is equivalent to a (synchronous) readwrite transaction.
+ * It involves deleting various information about the extension from the database,
+ * as well as possibly dropping related tables the extension may have been using.
+ *
+ * @param extensionName (required)
+ *     This is the arbitrary string you assigned to the extension when you registered it.
+ *
  * Note 1:
  *   You don't need to re-register an extension in order to unregister it. For example,
  *   you've previously registered an extension (in previous app launches), but you no longer need the extension.
@@ -519,7 +656,8 @@ __attribute((deprecated("Use method asyncRegisterExtension:withName:completionQu
  *   In fact, you don't even have to worry about unregistering extensions that you no longer need.
  *   That database system will automatically handle it for you.
  *   That is, upon completion of the first readWrite transaction (that makes changes), the database system will
- *   check to see if there are any "orphaned" extensions. Previously registered extensions that are no longer in use.
+ *   check to see if there are any "orphaned" extensions. That is, previously registered extensions that are
+ *   no longer in use (and are now out-of-date because they didn't process the recent change(s) to the db).
  *   And it will automatically unregister these orhpaned extensions for you.
  *       
  * @see asyncUnregisterExtensionWithName:completionBlock:
@@ -528,15 +666,35 @@ __attribute((deprecated("Use method asyncRegisterExtension:withName:completionQu
 - (void)unregisterExtensionWithName:(NSString *)extensionName;
 
 /**
- * Asynchronoulsy starts the extension unregistration process.
+ * This method unregisters an extension with the given name.
+ * The associated underlying tables will be dropped from the database.
  *
- * The unregistration process is equivalent to a readwrite transaction.
+ * The unregistration process is equivalent to a (synchronous) readwrite transaction.
  * It involves deleting various information about the extension from the database,
  * as well as possibly dropping related tables the extension may have been using.
  *
- * An optional completion block may be used.
+ * @param extensionName (required)
+ *     This is the arbitrary string you assigned to the extension when you registered it.
  * 
- * The completionBlock will be invoked on the main thread (dispatch_get_main_queue()).
+ * @param connection (optional)
+ *     You may optionally pass your own databaseConnection for this method to use.
+ *     If you pass nil, an internal databaseConnection will automatically be used.
+**/
+- (void)unregisterExtensionWithName:(NSString *)extensionName connection:(YapDatabaseConnection *)connection;
+
+/**
+ * Asynchronoulsy starts the extension unregistration process.
+ *
+ * The unregistration process is equivalent to an asyncReadwrite transaction.
+ * It involves deleting various information about the extension from the database,
+ * as well as possibly dropping related tables the extension may have been using.
+ *
+ * @param extensionName (required)
+ *     This is the arbitrary string you assigned to the extension when you registered it.
+ * 
+ * @param completionBlock (optional)
+ *     An optional completion block may be used.
+ *     The completionBlock will be invoked on the main thread (dispatch_get_main_queue()).
 **/
 - (void)asyncUnregisterExtensionWithName:(NSString *)extensionName
                          completionBlock:(dispatch_block_t)completionBlock;
@@ -544,16 +702,49 @@ __attribute((deprecated("Use method asyncRegisterExtension:withName:completionQu
 /**
  * Asynchronoulsy starts the extension unregistration process.
  *
- * The unregistration process is equivalent to a readwrite transaction.
+ * The unregistration process is equivalent to an asyncReadwrite transaction.
  * It involves deleting various information about the extension from the database,
  * as well as possibly dropping related tables the extension may have been using.
  *
- * An optional completion block may be used.
+ * @param extensionName (required)
+ *     This is the arbitrary string you assigned to the extension when you registered it.
+ * 
+ * @param completionQueue (optional)
+ *     The dispatch_queue to invoke the completion block may optionally be specified.
+ *     If NULL, dispatch_get_main_queue() is automatically used.
  *
- * Additionally the dispatch_queue to invoke the completion block may also be specified.
- * If NULL, dispatch_get_main_queue() is automatically used.
+ * @param completionBlock (optional)
+ *     An optional completion block may be used.
+ *     If the extension registration was successful then the ready parameter will be YES.
 **/
 - (void)asyncUnregisterExtensionWithName:(NSString *)extensionName
+                         completionQueue:(dispatch_queue_t)completionQueue
+                         completionBlock:(dispatch_block_t)completionBlock;
+
+/**
+ * Asynchronoulsy starts the extension unregistration process.
+ *
+ * The unregistration process is equivalent to an asyncReadwrite transaction.
+ * It involves deleting various information about the extension from the database,
+ * as well as possibly dropping related tables the extension may have been using.
+ *
+ * @param extensionName (required)
+ *     This is the arbitrary string you assigned to the extension when you registered it.
+ * 
+ * @param connection (optional)
+ *     You may optionally pass your own databaseConnection for this method to use.
+ *     If you pass nil, an internal databaseConnection will automatically be used.
+ *
+ * @param completionQueue (optional)
+ *     The dispatch_queue to invoke the completion block may optionally be specified.
+ *     If NULL, dispatch_get_main_queue() is automatically used.
+ *
+ * @param completionBlock (optional)
+ *     An optional completion block may be used.
+ *     If the extension registration was successful then the ready parameter will be YES.
+**/
+- (void)asyncUnregisterExtensionWithName:(NSString *)extensionName
+                              connection:(YapDatabaseConnection *)connection
                          completionQueue:(dispatch_queue_t)completionQueue
                          completionBlock:(dispatch_block_t)completionBlock;
 
@@ -614,12 +805,28 @@ __attribute((deprecated("Use method asyncUnregisterExtensionWithName:completionQ
 **/
 - (NSDictionary *)registeredExtensions;
 
+/**
+ * Allows you to fetch the registered extension names from the last time the database was run.
+ * Typically this means from the last time the app was run.
+ * 
+ * This may be used to assist in various tasks, such as cleanup or upgrade tasks.
+ * 
+ * If you need this information, you should fetch it early on because YapDatabase only maintains this information
+ * until it sees you are done registering all your initial extensions. That is, after one initializes the database
+ * they then immediately register any needed initial extensions before they begin to use the database. Once a 
+ * readWriteTransaction modifies the database, YapDatabase will take this opportunity to look for orphaned extensions.
+ * These are extensions that were registered at the end of the last database session,
+ * but which are no longer registered. YapDatabase will automatically cleanup these orphaned extensions,
+ * and also clear the previouslyRegisteredExtensionNames information at this point.
+**/
+- (NSArray *)previouslyRegisteredExtensionNames;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Connection Pooling
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * As recommended in the "Performance Primer" ( https://github.com/yaptv/YapDatabase/wiki/Performance-Primer )
+ * As recommended in the "Performance Primer" ( https://github.com/yapstudios/YapDatabase/wiki/Performance-Primer )
  * 
  * > You should consider connections to be relatively heavy weight objects.
  * >

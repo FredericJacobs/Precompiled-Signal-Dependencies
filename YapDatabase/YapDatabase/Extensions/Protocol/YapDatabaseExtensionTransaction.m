@@ -56,6 +56,8 @@
 */
 }
 
+#pragma mark Creation
+
 /**
  * Subclasses MUST implement this method.
  * 
@@ -118,6 +120,10 @@
 	return NO;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Commit & Rollback
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /**
  * Subclasses may OPTIONALLY implement this method.
  * This method is only called if within a readwrite transaction.
@@ -133,6 +139,7 @@
 **/
 - (BOOL)flushPendingChangesToMainDatabaseTable
 {
+	// Override me if needed
 	return NO;
 }
 
@@ -140,40 +147,49 @@
  * Subclasses may OPTIONALLY implement this method.
  * This method is only called if within a readwrite transaction.
  *
- * Subclasses may implement it to perform any "cleanup" before the changeset is requested.
- * Remember, the changeset is requested before the commitTransaction method is invoked.
+ * Subclasses should write any last changes to their database table(s) if needed,
+ * and should perform any needed cleanup before the changeset is requested.
+ * 
+ * Remember, the changeset is requested immediately after this method is invoked.
 **/
-- (void)prepareChangeset
+- (void)flushPendingChangesToExtensionTables
 {
-	// Subclasses may optionally override this method to perform any "cleanup" before the changesets are requested.
-	// Remember, the changesets are requested before the commitTransaction method is invoked.
+	// Override me if needed
 }
 
 /**
  * Subclasses MUST implement this method.
  * This method is only called if within a readwrite transaction.
+ * 
+ * Remember, the transaction cannot make any changes to the database at this point,
+ * as this method is called after the transaction has completed.
+ * This method is primarily for cleanup & related tasks.
 **/
-- (void)commitTransaction
+- (void)didCommitTransaction
 {
 	NSAssert(NO, @"Missing required override method(%@) in class(%@)", NSStringFromSelector(_cmd), [self class]);
 	
-	// Subclasses should include the code similar to the following at the end of their implementation:
+	// Subclasses MUST include the code similar to the following at the end of their implementation:
 	//
-	// viewConnection = nil;
+	// extConnection = nil;
 	// databaseTransaction = nil;
 }
 
 /**
  * Subclasses MUST implement this method.
  * This method is only called if within a readwrite transaction.
+ * 
+ * Remember, the transaction cannot make any changes to the database at this point,
+ * as this method is called after the transaction has aborted.
+ * This method is primarily for cleanup & related tasks.
 **/
-- (void)rollbackTransaction
+- (void)didRollbackTransaction
 {
 	NSAssert(NO, @"Missing required override method(%@) in class(%@)", NSStringFromSelector(_cmd), [self class]);
 	
-	// Subclasses should include the code similar to the following at the end of their implementation:
+	// Subclasses MUST include the code similar to the following at the end of their implementation:
 	//
-	// viewConnection = nil;
+	// extConnection = nil;
 	// databaseTransaction = nil;
 }
 
@@ -307,6 +323,95 @@
 - (void)handleRemoveAllObjectsInAllCollections
 {
 	NSAssert(NO, @"Missing required override method(%@) in class(%@)", NSStringFromSelector(_cmd), [self class]);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Pre-Hooks
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Subclasses may OPTIONALLY implement this method.
+ * YapDatabaseReadWriteTransaction Hook, invoked pre-op.
+ * Corresponds to [transaction setObject:object forKey:key inCollection:collection] &
+ *                [transaction setObject:object forKey:key inCollection:collection withMetadata:metadata]
+ * where the object is being inserted (value for collection/key does NOT exist at the moment this method is called).
+ **/
+- (void)handleWillInsertObject:(id)object
+          forCollectionKey:(YapCollectionKey *)collectionKey
+              withMetadata:(id)metadata
+{
+}
+
+/**
+ * Subclasses may OPTIONALLY implement this method.
+ * YapDatabaseReadWriteTransaction Hook, invoked pre-op.
+ * Corresponds to [transaction setObject:object forKey:key inCollection:collection] &
+ *                [transaction setObject:object forKey:key inCollection:collection withMetadata:metadata]
+ * where the object is being updated (value for collection/key DOES exist, and is being updated/changed).
+ **/
+- (void)handleWillUpdateObject:(id)object
+          forCollectionKey:(YapCollectionKey *)collectionKey
+              withMetadata:(id)metadata
+                     rowid:(int64_t)rowid
+{
+}
+
+/**
+ * Subclasses may OPTIONALLY implement this method.
+ * YapDatabaseReadWriteTransaction Hook, invoked pre-op.
+ * Corresponds to [transaction replaceObject:object forKey:key inCollection:collection].
+ **/
+- (void)handleWillReplaceObject:(id)object
+           forCollectionKey:(YapCollectionKey *)collectionKey
+                  withRowid:(int64_t)rowid
+{
+}
+
+/**
+ * Subclasses may OPTIONALLY implement this method.
+ * YapDatabaseReadWriteTransaction Hook, invoked pre-op.
+ * Corresponds to [transaction replaceMetadata:metadata forKey:key inCollection:collection].
+ **/
+- (void)handleWillReplaceMetadata:(id)metadata
+             forCollectionKey:(YapCollectionKey *)collectionKey
+                    withRowid:(int64_t)rowid
+{
+}
+
+/**
+ * Subclasses may OPTIONALLY implement this method.
+ * YapDatabaseReadWriteTransaction Hook, invoked pre-op.
+ * Corresponds to [transaction removeObjectForKey:key inCollection:collection].
+ **/
+- (void)handleWillRemoveObjectForCollectionKey:(YapCollectionKey *)collectionKey withRowid:(int64_t)rowid
+{
+}
+
+/**
+ * Subclasses may OPTIONALLY implement this method.
+ * YapDatabaseReadWriteTransaction Hook, invoked pre-op.
+ *
+ * Corresponds to [transaction removeObjectsForKeys:keys inCollection:collection] &
+ *                [transaction removeAllObjectsInCollection:collection].
+ *
+ * IMPORTANT:
+ *   The number of items passed to this method has the following guarantee:
+ *   count <= (SQLITE_LIMIT_VARIABLE_NUMBER - 1)
+ *
+ * The YapDatabaseReadWriteTransaction will inspect the list of keys that are to be removed,
+ * and then loop over them in "chunks" which are readily processable for extensions.
+ **/
+- (void)handleWillRemoveObjectsForKeys:(NSArray *)keys inCollection:(NSString *)collection withRowids:(NSArray *)rowids
+{
+}
+
+/**
+ * Subclasses may OPTIONALLY implement this method.
+ * YapDatabaseReadWriteTransaction Hook, invoked pre-op.
+ * Corresponds to [transaction removeAllObjectsInAllCollections].
+ **/
+- (void)handleWillRemoveAllObjectsInAllCollections
+{
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

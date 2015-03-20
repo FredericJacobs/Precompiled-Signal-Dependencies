@@ -16,12 +16,31 @@ Features/Design
 - TLS (wss) support.  It uses CFStream so we get this for *free*
 - Uses NSStream/CFNetworking.  Earlier implementations used ``dispatch_io``,
   however, this proved to be make TLS nearly impossible.  Also I wanted this to
-  work in iOS 4.x.
+  work in iOS 4.x. (SocketRocket only supports 5.0 and above now)
 - Uses ARC.  It uses the 4.0 compatible subset (no weak refs).
 - Seems to perform quite well
 - Parallel architecture. Most of the work is done in background worker queues.
 - Delegate-based. Had older versions that could use blocks too, but I felt it
   didn't blend well with retain cycles and just objective C in general.
+
+Changes
+-------
+
+v0.3.1-beta2 - 2013-01-12
+`````````````````````````
+
+- Stability fix for ``closeWithCode:reason:`` (Thanks @michaelpetrov!)
+- Actually clean up the NSStreams and remove them from their runloops
+- ``_SRRunLoopThread``'s ``main`` wasn't correctly wrapped with
+  ``@autoreleasepool``
+
+v0.3.1-beta1 - 2013-01-12
+`````````````````````````
+
+- Cleaned up GCD so OS_OBJECT_USE_OBJC_RETAIN_RELEASE is optional
+- Removed deprecated ``dispatch_get_current_queue`` in favor of ``dispatch_queue_set_specific`` and ``dispatch_get_specific``
+- Dropping support for iOS 4.0 (it may still work)
+
 
 Installing (iOS)
 ----------------
@@ -35,8 +54,9 @@ There's a few options. Choose one, or just figure it out
 - For OS X you will have to repackage make a .framework target.  I will take
   contributions. Message me if you are interested.
 
+
 Depending on how you configure your project you may need to ``#import`` either
-``<SocketRocket/SRSocketRocket.h>`` or ``"SRSocketRocket.h"``
+``<SocketRocket/SRWebSocket.h>`` or ``"SRWebSocket.h"``
 
 Framework Dependencies
 ``````````````````````
@@ -53,7 +73,7 @@ SocketRocket now has (64-bit only) OS X support.  ``SocketRocket.framework``
 inside Xcode project is for OS X only.  It should be identical in function aside
 from the unicode validation.  ICU isn't shipped with OS X which is what the
 original implementation used for unicode validation.  The workaround is much
-more rhudimentary and less robust.
+more rudimentary and less robust.
 
 1. Add SocketRocket.xcodeproj as either a subproject of your app or in your workspace.
 2. Add ``SocketRocket.framework`` to the link libraries
@@ -72,7 +92,9 @@ The Web Socket.
   closes, errors, or fails.  This is similar to how ``NSURLConnection`` behaves.
   (unlike ``NSURLConnection``, ``SRWebSocket`` won't retain the delegate)
 
-What you need to know:: 
+What you need to know
+
+.. code-block:: objective-c
 
   @interface SRWebSocket : NSObject
 
@@ -90,12 +112,13 @@ What you need to know::
   // Send a UTF8 String or Data
   - (void)send:(id)data;
 
-
   @end
 
 ``SRWebSocketDelegate``
 ```````````````````````
-You implement this ::
+You implement this
+
+.. code-block:: objective-c
 
   @protocol SRWebSocketDelegate <NSObject>
 
@@ -147,6 +170,9 @@ To run from the app, choose the ``SocketRocket`` target and run the test action
 some serious pre/post hooks in the Test action.  You can edit it to customize
 behavior.
 
+.. note:: Xcode only up to version 4.4 is currently supported for the test
+  harness
+
 TestChat Demo Application
 -------------------------
 SocketRocket includes a demo app, TestChat.  It will "chat" with a listening
@@ -196,9 +222,7 @@ WebSocket Server Implementation Recommendations
 SocketRocket has been used with the following libraries:
 
 - `Tornado <https://github.com/facebook/tornado>`_
-- Go's `weekly build <http://weekly.golang.org>`_ (the official release has an
-  outdated protocol, so you may have to use weekly until `Go 1
-  <http://blog.golang.org/2011/10/preview-of-go-version-1.html>`_ is released)
+- Go's `WebSocket package <http://godoc.org/code.google.com/p/go.net/websocket>`_ or Gorilla's `version <http://www.gorillatoolkit.org/pkg/websocket>`_
 - `Autobahn <http://www.tavendo.de/autobahn/testsuite.html>`_ (using its fuzzing
   client)
 
@@ -213,7 +237,7 @@ It could use some more control over things such as pings, etc., but I
 am sure it will come in time.
 
 Autobahn is a great test suite.  The Python server code is good, and conforms
-well (obviously).  Hovever, for me, twisted would be a deal-breaker for writing
+well (obviously).  However for me, twisted would be a deal-breaker for writing
 something new.  I find it a bit too complex and heavy for a simple service. If
 you are already using twisted though, Autobahn is probably for you.
 

@@ -19,6 +19,7 @@
 #import "JSQMessage.h"
 
 
+
 @interface JSQMessage ()
 
 - (instancetype)initWithSenderId:(NSString *)senderId
@@ -27,7 +28,6 @@
                          isMedia:(BOOL)isMedia;
 
 @end
-
 
 
 @implementation JSQMessage
@@ -97,6 +97,7 @@
         _senderDisplayName = [senderDisplayName copy];
         _date = [date copy];
         _isMediaMessage = isMedia;
+        _messageType = TSGenericTextMessageAdapter;
     }
     return self;
 }
@@ -112,6 +113,7 @@
     _senderId = nil;
     _senderDisplayName = nil;
     _date = nil;
+    _status = kMessageNone;
     _text = nil;
     _media = nil;
 }

@@ -92,13 +92,13 @@
 - (BOOL)flushPendingChangesToMainDatabaseTable;
 
 // See YapDatabaseExtensionTransaction.m for discussion of this method
-- (void)prepareChangeset;
+- (void)flushPendingChangesToExtensionTables;
 
 // See YapDatabaseExtensionTransaction.m for discussion of this method
-- (void)commitTransaction;
+- (void)didCommitTransaction;
 
 // See YapDatabaseExtensionTransaction.m for discussion of this method
-- (void)rollbackTransaction;
+- (void)didRollbackTransaction;
 
 #pragma mark Hooks
 
@@ -132,6 +132,32 @@
 - (void)handleRemoveObjectsForKeys:(NSArray *)keys inCollection:(NSString *)collection withRowids:(NSArray *)rowids;
 
 - (void)handleRemoveAllObjectsInAllCollections;
+
+// Pre-op versions
+
+- (void)handleWillInsertObject:(id)object
+          forCollectionKey:(YapCollectionKey *)collectionKey
+              withMetadata:(id)metadata;
+
+- (void)handleWillUpdateObject:(id)object
+          forCollectionKey:(YapCollectionKey *)collectionKey
+              withMetadata:(id)metadata
+                     rowid:(int64_t)rowid;
+
+- (void)handleWillReplaceObject:(id)object
+           forCollectionKey:(YapCollectionKey *)collectionKey
+                  withRowid:(int64_t)rowid;
+
+- (void)handleWillReplaceMetadata:(id)metadata
+             forCollectionKey:(YapCollectionKey *)collectionKey
+                    withRowid:(int64_t)rowid;
+
+- (void)handleWillRemoveObjectForCollectionKey:(YapCollectionKey *)collectionKey withRowid:(int64_t)rowid;
+
+- (void)handleWillRemoveObjectsForKeys:(NSArray *)keys inCollection:(NSString *)collection withRowids:(NSArray *)rowids;
+
+- (void)handleWillRemoveAllObjectsInAllCollections;
+
 
 #pragma mark Configuration Values
 

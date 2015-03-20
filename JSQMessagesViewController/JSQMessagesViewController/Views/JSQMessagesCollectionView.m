@@ -27,6 +27,7 @@
 
 #import "UIColor+JSQMessages.h"
 
+#import "JSQCallCollectionViewCell.h"
 
 @interface JSQMessagesCollectionView () <JSQMessagesLoadEarlierHeaderViewDelegate>
 
@@ -67,6 +68,12 @@
     [self registerNib:[JSQMessagesLoadEarlierHeaderView nib]
           forSupplementaryViewOfKind:UICollectionElementKindSectionHeader
           withReuseIdentifier:[JSQMessagesLoadEarlierHeaderView headerReuseIdentifier]];
+    
+    [self registerNib:[JSQCallCollectionViewCell nib]
+          forCellWithReuseIdentifier:[JSQCallCollectionViewCell cellReuseIdentifier]];
+    
+    [self registerNib:[JSQDisplayedMessageCollectionViewCell nib]
+          forCellWithReuseIdentifier:[JSQDisplayedMessageCollectionViewCell cellReuseIdentifier]];
 
     _typingIndicatorDisplaysOnLeft = YES;
     _typingIndicatorMessageBubbleColor = [UIColor jsq_messageBubbleLightGrayColor];
@@ -163,6 +170,17 @@
     [self.delegate collectionView:self
             didTapCellAtIndexPath:indexPath
                     touchLocation:position];
+}
+
+- (void)displayedCollectionViewCellDidTapMessage:(JSQDisplayedMessageCollectionViewCell *)cell
+{
+    NSIndexPath * indexPath = [self indexPathForCell:cell];
+    
+    if (indexPath == nil) {
+        return;
+    }
+    
+    [self.delegate collectionView:self didTapMessageBubbleAtIndexPath:indexPath];
 }
 
 @end

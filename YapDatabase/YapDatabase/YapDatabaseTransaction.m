@@ -55,6 +55,7 @@
 }
 
 @synthesize connection = connection;
+@synthesize userInfo = _external_userInfo;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Transaction States
@@ -82,7 +83,7 @@
 	//
 	// Allow extensions to flush changes to the main database table.
 	// This is different from flushing changes to their own private tables.
-	// We're referring here to the main collection/key/value table that's public.
+	// We're referring here to the main collection/key/value table (database2) that's public.
 	
 	__block BOOL restart;
 	__block BOOL prevExtModifiesMainDatabaseTable;
@@ -123,27 +124,19 @@
 	
 	// Step 2:
 	//
-	// Allow extensions to perform any "cleanup" code needed before the changesets are requested,
-	// and before the commit is executed.
+	// Allow extensions to flush changes to their own tables,
+	// and perform any needed "cleanup" code needed before the changeset is requested.
 	
 	[extensions enumerateKeysAndObjectsUsingBlock:^(id extNameObj, id extTransactionObj, BOOL *stop) {
 		
-		[(YapDatabaseExtensionTransaction *)extTransactionObj prepareChangeset];
+		[(YapDatabaseExtensionTransaction *)extTransactionObj flushPendingChangesToExtensionTables];
 	}];
+	
+	[yapMemoryTableTransaction commit];
 }
 
 - (void)commitTransaction
 {
-	if (isReadWriteTransaction)
-	{
-		[extensions enumerateKeysAndObjectsUsingBlock:^(id extNameObj, id extTransactionObj, BOOL *stop) {
-			
-			[(YapDatabaseExtensionTransaction *)extTransactionObj commitTransaction];
-		}];
-		
-		[yapMemoryTableTransaction commit];
-	}
-	
 	sqlite3_stmt *statement = [connection commitTransactionStatement];
 	if (statement)
 	{
@@ -157,17 +150,18 @@
 		
 		sqlite3_reset(statement);
 	}
+	
+	if (isReadWriteTransaction)
+	{
+		[extensions enumerateKeysAndObjectsUsingBlock:^(id extNameObj, id extTransactionObj, BOOL *stop) {
+			
+			[(YapDatabaseExtensionTransaction *)extTransactionObj didCommitTransaction];
+		}];
+	}
 }
 
 - (void)rollbackTransaction
 {
-	[extensions enumerateKeysAndObjectsUsingBlock:^(id extNameObj, id extTransactionObj, BOOL *stop) {
-		
-		[(YapDatabaseExtensionTransaction *)extTransactionObj rollbackTransaction];
-	}];
-	
-	[yapMemoryTableTransaction rollback];
-	
 	sqlite3_stmt *statement = [connection rollbackTransactionStatement];
 	if (statement)
 	{
@@ -181,6 +175,13 @@
 		
 		sqlite3_reset(statement);
 	}
+	
+	[extensions enumerateKeysAndObjectsUsingBlock:^(id extNameObj, id extTransactionObj, BOOL *stop) {
+		
+		[(YapDatabaseExtensionTransaction *)extTransactionObj didRollbackTransaction];
+	}];
+	
+	[yapMemoryTableTransaction rollback];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -4057,7 +4058,7 @@
  * as opposed to broadcasting your own separate notification.
  * 
  * For more information, and code samples, please see the wiki article:
- * https://github.com/yaptv/YapDatabase/wiki/YapDatabaseModifiedNotification
+ * https://github.com/yapstudios/YapDatabase/wiki/YapDatabaseModifiedNotification
 **/
 @synthesize yapDatabaseModifiedNotificationCustomObject = customObjectForNotification;
 
@@ -4184,23 +4185,23 @@
 	if (key == nil) return;
 	if (collection == nil) collection = @"";
 	
-	if (connection->database->objectSanitizer)
+	if (connection->database->objectPreSanitizer)
 	{
-		object = connection->database->objectSanitizer(collection, key, object);
+		object = connection->database->objectPreSanitizer(collection, key, object);
 		if (object == nil)
 		{
-			YDBLogWarn(@"Object sanitizer returned nil for key(%@) object: %@", key, object);
+			YDBLogWarn(@"The objectPreSanitizer returned nil for collection(%@) key(%@)", collection, key);
 			
 			[self removeObjectForKey:key inCollection:collection];
 			return;
 		}
 	}
-	if (metadata && connection->database->metadataSanitizer)
+	if (metadata && connection->database->metadataPreSanitizer)
 	{
-		metadata = connection->database->metadataSanitizer(collection, key, metadata);
+		metadata = connection->database->metadataPreSanitizer(collection, key, metadata);
 		if (metadata == nil)
 		{
-			YDBLogWarn(@"Metadata sanitizer returned nil for key(%@) metadata: %@", key, metadata);
+			YDBLogWarn(@"The metadataPresanitizer returned nil for collection(%@) key(%@)", collection, key);
 		}
 	}
 	
@@ -4260,6 +4261,22 @@
 	}
 	
 	BOOL set = YES;
+    YapCollectionKey *cacheKey = [[YapCollectionKey alloc] initWithCollection:collection key:key];
+    
+    for (YapDatabaseExtensionTransaction *extTransaction in [self orderedExtensions])
+    {
+        if (found)
+            [extTransaction handleWillUpdateObject:object
+                                  forCollectionKey:cacheKey
+                                      withMetadata:metadata
+                                             rowid:rowid];
+        else
+            [extTransaction handleWillInsertObject:object
+                                  forCollectionKey:cacheKey
+                                      withMetadata:metadata];
+    }
+    
+    
 	
 	if (found) // update data for key
 	{
@@ -4326,7 +4343,6 @@
 	
 	connection->hasDiskChanges = YES;
 	isMutated = YES;  // mutation during enumeration protection
-	YapCollectionKey *cacheKey = [[YapCollectionKey alloc] initWithCollection:collection key:key];
 	
 	[connection->keyCache setObject:cacheKey forKey:@(rowid)];
 	
@@ -4386,6 +4402,15 @@
 			                  forCollectionKey:cacheKey
 			                      withMetadata:metadata
 			                             rowid:rowid];
+	}
+	
+	if (connection->database->objectPostSanitizer)
+	{
+		connection->database->objectPostSanitizer(collection, key, object);
+	}
+	if (metadata && connection->database->metadataPreSanitizer)
+	{
+		connection->database->metadataPostSanitizer(collection, key, metadata);
 	}
 }
 
@@ -4483,18 +4508,24 @@
 	NSAssert(key != nil, @"Internal error");
 	if (collection == nil) collection = @"";
 	
-	if (connection->database->objectSanitizer)
+	if (connection->database->objectPreSanitizer)
 	{
-		object = connection->database->objectSanitizer(collection, key, object);
+		object = connection->database->objectPreSanitizer(collection, key, object);
 		if (object == nil)
 		{
-			YDBLogWarn(@"Object sanitizer returned nil for key(%@) object: %@", key, object);
+			YDBLogWarn(@"The objectPreSanitizer returned nil for collection(%@) key(%@)", collection, key);
 			
 			[self removeObjectForKey:key inCollection:collection withRowid:rowid];
 			return;
 		}
 	}
 	
+    YapCollectionKey *cacheKey = [[YapCollectionKey alloc] initWithCollection:collection key:key];
+    for (YapDatabaseExtensionTransaction *extTransaction in [self orderedExtensions])
+    {
+        [extTransaction handleWillReplaceObject:object forCollectionKey:cacheKey withRowid:rowid];
+    }
+    
 	// To use SQLITE_STATIC on our data blob, we use the objc_precise_lifetime attribute.
 	// This ensures the data isn't released until it goes out of scope.
 	
@@ -4529,7 +4560,6 @@
 	
 	connection->hasDiskChanges = YES;
 	isMutated = YES;  // mutation during enumeration protection
-	YapCollectionKey *cacheKey = [[YapCollectionKey alloc] initWithCollection:collection key:key];
 	
 	id _object = nil;
 	if (connection->objectPolicy == YapDatabasePolicyContainment) {
@@ -4552,6 +4582,11 @@
 	for (YapDatabaseExtensionTransaction *extTransaction in [self orderedExtensions])
 	{
 		[extTransaction handleReplaceObject:object forCollectionKey:cacheKey withRowid:rowid];
+	}
+	
+	if (connection->database->objectPostSanitizer)
+	{
+		connection->database->objectPostSanitizer(collection, key, object);
 	}
 }
 
@@ -4645,12 +4680,12 @@
 	NSAssert(key != nil, @"Internal error");
 	if (collection == nil) collection = @"";
 	
-	if (metadata && connection->database->metadataSanitizer)
+	if (metadata && connection->database->metadataPreSanitizer)
 	{
-		metadata = connection->database->metadataSanitizer(collection, key, metadata);
+		metadata = connection->database->metadataPreSanitizer(collection, key, metadata);
 		if (metadata == nil)
 		{
-			YDBLogWarn(@"Metadata sanitizer returned nil for key: %@", key);
+			YDBLogWarn(@"The metadataPreSanitizer returned nil for collection(%@) key(%@)", collection, key);
 		}
 	}
 	
@@ -4676,6 +4711,12 @@
 	
 	BOOL updated = YES;
 	
+    YapCollectionKey *cacheKey = [[YapCollectionKey alloc] initWithCollection:collection key:key];
+    for (YapDatabaseExtensionTransaction *extTransaction in [self orderedExtensions])
+    {
+        [extTransaction handleWillReplaceMetadata:metadata forCollectionKey:cacheKey withRowid:rowid];
+    }
+
 	int status = sqlite3_step(statement);
 	if (status != SQLITE_DONE)
 	{
@@ -4691,7 +4732,6 @@
 	
 	connection->hasDiskChanges = YES;
 	isMutated = YES;  // mutation during enumeration protection
-	YapCollectionKey *cacheKey = [[YapCollectionKey alloc] initWithCollection:collection key:key];
 	
 	if (metadata)
 	{
@@ -4722,6 +4762,11 @@
 	for (YapDatabaseExtensionTransaction *extTransaction in [self orderedExtensions])
 	{
 		[extTransaction handleReplaceMetadata:metadata forCollectionKey:cacheKey withRowid:rowid];
+	}
+	
+	if (metadata && connection->database->metadataPostSanitizer)
+	{
+		connection->database->metadataPostSanitizer(collection, key, metadata);
 	}
 }
 
@@ -4786,6 +4831,12 @@
 	
 	BOOL removed = YES;
 	
+    YapCollectionKey *cacheKey = [[YapCollectionKey alloc] initWithCollection:collection key:key];
+    for (YapDatabaseExtensionTransaction *extTransaction in [self orderedExtensions])
+    {
+        [extTransaction handleWillRemoveObjectForCollectionKey:cacheKey withRowid:rowid];
+    }
+
 	int status = sqlite3_step(statement);
 	if (status != SQLITE_DONE)
 	{
@@ -4801,7 +4852,6 @@
 	
 	connection->hasDiskChanges = YES;
 	isMutated = YES;  // mutation during enumeration protection
-	YapCollectionKey *cacheKey = [[YapCollectionKey alloc] initWithCollection:collection key:key];
 	NSNumber *rowidNumber = @(rowid);
 	
 	[connection->keyCache removeObjectForKey:rowidNumber];
@@ -4978,6 +5028,13 @@
 				sqlite3_bind_int64(statement, (int)(i + 1), rowid);
 			}
 			
+            for (YapDatabaseExtensionTransaction *extTransaction in [self orderedExtensions])
+            {
+                [extTransaction handleWillRemoveObjectsForKeys:foundKeys
+                                                  inCollection:collection
+                                                    withRowids:foundRowids];
+            }
+            
 			status = sqlite3_step(statement);
 			if (status != SQLITE_DONE)
 			{
@@ -5256,6 +5313,13 @@
 				
 				sqlite3_bind_int64(statement, (int)(i + 1), rowid);
 			}
+            
+            for (YapDatabaseExtensionTransaction *extTransaction in [self orderedExtensions])
+            {
+                [extTransaction handleWillRemoveObjectsForKeys:foundKeys
+                                                  inCollection:collection
+                                                    withRowids:foundRowids];
+            }
 			
 			status = sqlite3_step(statement);
 			if (status != SQLITE_DONE)
@@ -5294,6 +5358,11 @@
 {
 	sqlite3_stmt *statement = [connection removeAllStatement];
 	if (statement == NULL) return;
+
+    for (YapDatabaseExtensionTransaction *extTransaction in [self orderedExtensions])
+    {
+        [extTransaction handleWillRemoveAllObjectsInAllCollections];
+    }
 	
 	int status = sqlite3_step(statement);
 	if (status != SQLITE_DONE)

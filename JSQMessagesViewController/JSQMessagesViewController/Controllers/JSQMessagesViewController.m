@@ -42,9 +42,14 @@
 #import "UIColor+JSQMessages.h"
 #import "UIDevice+JSQMessages.h"
 
+#import "JSQCall.h"
+#import "JSQCallCollectionViewCell.h"
+
+#import "JSQInfoMessage.h"
+#import "JSQErrorMessage.h"
+#import "JSQDisplayedMessageCollectionViewCell.h"
 
 static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObservingContext;
-
 
 
 @interface JSQMessagesViewController () <JSQMessagesInputToolbarDelegate,
@@ -119,6 +124,7 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
 - (void)jsq_configureMessagesViewController
 {
     self.view.backgroundColor = [UIColor whiteColor];
+;
     
     self.jsq_isObserving = NO;
     
@@ -141,6 +147,10 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
     
     self.incomingCellIdentifier = [JSQMessagesCollectionViewCellIncoming cellReuseIdentifier];
     self.incomingMediaCellIdentifier = [JSQMessagesCollectionViewCellIncoming mediaCellReuseIdentifier];
+    
+    self.callCellIndentifier = [JSQCallCollectionViewCell cellReuseIdentifier];
+    
+    self.displayedMessageCellIndentifier = [JSQDisplayedMessageCollectionViewCell cellReuseIdentifier];
     
     self.showTypingIndicator = NO;
     
@@ -350,8 +360,8 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
     
     [self.collectionView.collectionViewLayout invalidateLayoutWithContext:[JSQMessagesCollectionViewFlowLayoutInvalidationContext context]];
     [self.collectionView reloadData];
-    
-    if (self.automaticallyScrollsToMostRecentMessage && ![self jsq_isMenuVisible]) {
+
+    if (self.automaticallyScrollsToMostRecentMessage) {
         [self scrollToBottomAnimated:animated];
     }
 }
@@ -452,14 +462,102 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
     NSParameterAssert(messageSenderId != nil);
     
     BOOL isOutgoingMessage = [messageSenderId isEqualToString:self.senderId];
-    BOOL isMediaMessage = [messageItem isMediaMessage];
+    BOOL isCall = [messageItem messageType] == TSCallAdapter;
+    BOOL isInfoMessage = [messageItem messageType] == TSInfoMessageAdapter;
+    BOOL isErrorMessage = [messageItem messageType] == TSErrorMessageAdapter;
+    
+    BOOL isMediaMessage = NO;
+    
+    if (!isCall && !isInfoMessage && !isErrorMessage )
+    {
+        isMediaMessage = [messageItem isMediaMessage];
+    }
+    
     
     NSString *cellIdentifier = nil;
-    if (isMediaMessage) {
+    
+    if (isCall) {
+        JSQCall * call = (JSQCall*)messageItem;
+        cellIdentifier = self.callCellIndentifier;
+        JSQCallCollectionViewCell * callCell = [collectionView dequeueReusableCellWithReuseIdentifier:cellIdentifier forIndexPath:indexPath];
+        
+        NSString *text =  call.date != nil ? [call text] : call.senderDisplayName;
+        NSString *allText = call.date != nil ? [text stringByAppendingString:[call dateText]] : text;
+        const CGFloat fontSize = 14;
+        UIFont *boldFont = [UIFont fontWithName:@"HelveticaNeue-Medium" size:12.0f];
+        UIFont *regularFont = [UIFont fontWithName:@"HelveticaNeue-Light" size:12.0f];
+        UIColor *foregroundColor = [UIColor whiteColor];
+        NSDictionary *attrs = [NSDictionary dictionaryWithObjectsAndKeys:
+                               boldFont, NSFontAttributeName, nil];
+        
+        NSMutableAttributedString *attributedText = [[NSMutableAttributedString alloc] initWithString:allText
+                                                                                           attributes:attrs];
+        if([call date]!=nil) {
+            // Not a group meta message
+            NSDictionary *subAttrs = [NSDictionary dictionaryWithObjectsAndKeys:
+                                  regularFont, NSFontAttributeName, nil];
+            const NSRange range = NSMakeRange([text length],[[call dateText] length]);
+         
+            [attributedText setAttributes:subAttrs range:range];
+            BOOL isOutgoing = [self.senderId isEqualToString:call.senderId];
+            if (isOutgoing)
+            {
+                callCell.outgoingCallImageView.image = [call thumbnailImage];
+            } else {
+                callCell.incomingCallImageView.image = [call thumbnailImage];
+            }
+        }
+        else {
+            // A group meta message
+            callCell.incomingCallImageView.image = [call thumbnailImage];
+        }
+        
+        callCell.cellLabel.attributedText = attributedText;
+        callCell.cellLabel.lineBreakMode = UILineBreakModeWordWrap;
+        callCell.cellLabel.numberOfLines = 0; // uses as many lines as it needs
+        callCell.cellLabel.textColor = [UIColor colorWithRed:32.f/255.f green:144.f/255.f blue:234.f/255.f  alpha:1.f];
+        
+        
+        callCell.layer.shouldRasterize = YES;
+        callCell.layer.rasterizationScale = [UIScreen mainScreen].scale;
+        return callCell;
+        
+    } else if (isInfoMessage) {
+        
+        JSQInfoMessage * infoMessage = (JSQInfoMessage*)messageItem;
+        cellIdentifier = self.displayedMessageCellIndentifier;
+        JSQDisplayedMessageCollectionViewCell * infoCell = [collectionView dequeueReusableCellWithReuseIdentifier:cellIdentifier forIndexPath:indexPath];
+        infoCell.delegate = collectionView;
+        infoCell.cellLabel.text = [infoMessage text];
+        infoCell.cellLabel.textColor = [UIColor darkGrayColor];
+        infoCell.cellLabel.layer.borderColor = [[UIColor colorWithRed:239.f/255.f green:189.f/255.f blue:88.f/255.f alpha:1.0f] CGColor];
+        infoCell.headerImageView.image = [UIImage imageNamed:@"warning_white"];
+        infoCell.layer.shouldRasterize = YES;
+        infoCell.layer.rasterizationScale = [UIScreen mainScreen].scale;
+        return infoCell;
+        
+    } else if (isErrorMessage) {
+        
+        JSQErrorMessage * errorMessage = (JSQErrorMessage*)messageItem;
+        cellIdentifier = self.displayedMessageCellIndentifier;
+        JSQDisplayedMessageCollectionViewCell * errorCell = [collectionView dequeueReusableCellWithReuseIdentifier:cellIdentifier forIndexPath:indexPath];
+        errorCell.delegate = collectionView;
+        errorCell.cellLabel.text = [errorMessage text];
+        errorCell.cellLabel.textColor = [UIColor darkGrayColor];
+        errorCell.cellLabel.layer.borderColor = [[UIColor colorWithRed:195.f/255.f green:0 blue:22.f/255.f alpha:1.0f] CGColor];
+        errorCell.headerImageView.image = [UIImage imageNamed:@"error_white"];
+        errorCell.layer.shouldRasterize = YES;
+        errorCell.layer.rasterizationScale = [UIScreen mainScreen].scale;
+        return errorCell;
+        
+    } else if (isMediaMessage) {
+    
         cellIdentifier = isOutgoingMessage ? self.outgoingMediaCellIdentifier : self.incomingMediaCellIdentifier;
-    }
-    else {
+        
+    } else {
+        
         cellIdentifier = isOutgoingMessage ? self.outgoingCellIdentifier : self.incomingCellIdentifier;
+        
     }
     
     JSQMessagesCollectionViewCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:cellIdentifier forIndexPath:indexPath];
@@ -521,9 +619,8 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
     
     cell.textView.dataDetectorTypes = UIDataDetectorTypeAll;
     
-    cell.backgroundColor = [UIColor clearColor];
-    cell.layer.rasterizationScale = [UIScreen mainScreen].scale;
     cell.layer.shouldRasterize = YES;
+    cell.layer.rasterizationScale = [UIScreen mainScreen].scale;
     
     return cell;
 }
@@ -566,8 +663,16 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
 
 - (BOOL)collectionView:(JSQMessagesCollectionView *)collectionView shouldShowMenuForItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    //  disable menu for media messages
+    //  disable menu for media messages, calls, info and error messages
     id<JSQMessageData> messageItem = [collectionView.dataSource collectionView:collectionView messageDataForItemAtIndexPath:indexPath];
+    
+    BOOL isErrorOrInfoMessage = messageItem.messageType == TSInfoMessageAdapter || messageItem.messageType == TSErrorMessageAdapter;
+    BOOL isCall = messageItem.messageType == TSCallAdapter;
+    
+    if (isErrorOrInfoMessage || isCall) {
+        return NO;
+    }
+    
     if ([messageItem isMediaMessage]) {
         return NO;
     }
@@ -636,6 +741,8 @@ static void * kJSQMessagesKeyValueObservingContext = &kJSQMessagesKeyValueObserv
 - (void)collectionView:(JSQMessagesCollectionView *)collectionView
  didTapCellAtIndexPath:(NSIndexPath *)indexPath
          touchLocation:(CGPoint)touchLocation { }
+
+
 
 #pragma mark - Input toolbar delegate
 

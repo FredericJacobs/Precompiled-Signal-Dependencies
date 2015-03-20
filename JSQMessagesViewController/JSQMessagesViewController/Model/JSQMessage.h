@@ -20,6 +20,15 @@
 
 #import "JSQMessageData.h"
 
+
+typedef enum : NSUInteger {
+    kMessageNone,
+    kMessageSent,
+    kMessageRead,
+    kMessageReceived,
+    kMesageFailed
+} MessageStatus;
+
 /**
  *  The `JSQMessage` class is a concrete class for message model objects that represents a single user message.
  *  The message can be a text message or media message, depending on how it is initialized.
@@ -51,6 +60,8 @@
  */
 @property (assign, nonatomic, readonly) BOOL isMediaMessage;
 
+@property (nonatomic) MessageStatus status;
+
 /**
  *  Returns the body text of the message, or `nil` if the message is a media message.
  *  That is, if `isMediaMessage` is equal to `YES` then this value will be `nil`.
@@ -62,6 +73,9 @@
  *  That is, if `isMediaMessage` is equal to `NO` then this value will be `nil`.
  */
 @property (copy, nonatomic, readonly) id<JSQMessageMediaData> media;
+
+
+@property (nonatomic) TSMessageAdapterType messageType;
 
 
 #pragma mark - Initialization

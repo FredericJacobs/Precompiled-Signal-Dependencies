@@ -4,10 +4,10 @@
  * Welcome to YapDatabase!
  *
  * The project page has a wealth of documentation if you have any questions.
- * https://github.com/yaptv/YapDatabase
+ * https://github.com/yapstudios/YapDatabase
  *
  * If you're new to the project you may want to visit the wiki.
- * https://github.com/yaptv/YapDatabase/wiki
+ * https://github.com/yapstudios/YapDatabase/wiki
  *
  * This class provides extra configuration options that may be passed to YapDatabase.
  * The configuration options provided by this class are advanced (beyond the basic setup options).
@@ -17,6 +17,9 @@
 @synthesize corruptAction = corruptAction;
 @synthesize pragmaSynchronous = pragmaSynchronous;
 @synthesize pragmaJournalSizeLimit = pragmaJournalSizeLimit;
+#ifdef SQLITE_HAS_CODEC
+@synthesize cipherKeyBlock = cipherKeyBlock;
+#endif
 
 - (id)init
 {
@@ -36,7 +39,7 @@
 	copy->pragmaSynchronous = pragmaSynchronous;
 	copy->pragmaJournalSizeLimit = pragmaJournalSizeLimit;
 #ifdef SQLITE_HAS_CODEC
-    copy.passphraseBlock = _passphraseBlock;
+    copy.cipherKeyBlock = cipherKeyBlock;
 #endif
 	return copy;
 }
