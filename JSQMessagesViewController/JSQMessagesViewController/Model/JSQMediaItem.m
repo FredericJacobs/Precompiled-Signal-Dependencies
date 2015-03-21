@@ -89,11 +89,6 @@
     return self.cachedPlaceholderView;
 }
 
-- (NSUInteger)mediaHash
-{
-    return self.hash;
-}
-
 #pragma mark - NSObject
 
 - (BOOL)isEqual:(id)object

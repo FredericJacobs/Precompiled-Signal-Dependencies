@@ -7,40 +7,19 @@
 //
 
 #import "SCWaveformView.h"
-#import "SCWaveformCache.h"
 
+#define absX(x) (x < 0 ? 0 - x : x)
+#define minMaxX(x, mn, mx) (x <= mn ? mn : (x >= mx ? mx : x))
 #define noiseFloor (-50.0)
-
-@interface SCWaveformLayer : CALayer
-
-@property (assign, nonatomic) CMTime waveformTime;
-
-@end
-
-@implementation SCWaveformLayer
-
-
-@end
-
-@interface SCWaveformLayerDelegate : NSObject
-
-@end
-
-@implementation SCWaveformLayerDelegate
-
-- (id)actionForLayer:(CALayer *)layer forKey:(NSString *)event {
-    return [NSNull null];
-}
-
-@end
+#define decibel(amplitude) (20.0 * log10(absX(amplitude) / 32767.0))
 
 @interface SCWaveformView() {
-    SCWaveformCache *_cache;
-    NSMutableArray *_waveforms;
-    SCWaveformLayerDelegate *_waveformLayersDelegate;
-    CALayer *_waveformSuperlayer;
-    int _firstVisibleIdx;
-    BOOL _graphDirty;
+    UIImageView *_normalImageView;
+    UIImageView *_progressImageView;
+    UIView *_cropNormalView;
+    UIView *_cropProgressView;
+    BOOL _normalColorDirty;
+    BOOL _progressColorDirty;
 }
 
 @end
@@ -57,7 +36,8 @@
     return self;
 }
 
-- (instancetype)initWithCoder:(NSCoder *)aDecoder {
+- (instancetype)initWithCoder:(NSCoder *)aDecoder
+{
     self = [super initWithCoder:aDecoder];
     
     if (self) {
@@ -67,189 +47,163 @@
     return self;
 }
 
-- (void)commonInit {
-    _precision = 1;
-    _lineWidthRatio = 1;
-
-    _waveformLayersDelegate = [SCWaveformLayerDelegate new];
-    _timeRange = CMTimeRangeMake(kCMTimeZero, kCMTimePositiveInfinity);
-    _progressTime = kCMTimeZero;
+- (void)commonInit
+{
+    _normalImageView = [[UIImageView alloc] init];
+    _progressImageView = [[UIImageView alloc] init];
+    _cropNormalView = [[UIView alloc] init];
+    _cropProgressView = [[UIView alloc] init];
     
-    _cache = [SCWaveformCache new];
-    _waveforms = [NSMutableArray new];
-    _graphDirty = YES;
+    _cropNormalView.clipsToBounds = YES;
+    _cropProgressView.clipsToBounds = YES;
+    
+    [_cropNormalView addSubview:_normalImageView];
+    [_cropProgressView addSubview:_progressImageView];
+    
+    [self addSubview:_cropNormalView];
+    [self addSubview:_cropProgressView];
     
     self.normalColor = [UIColor blueColor];
     self.progressColor = [UIColor redColor];
     
-    self.layer.shouldRasterize = NO;
-    
-    _waveformSuperlayer = [CALayer layer];
-    _waveformSuperlayer.anchorPoint = CGPointMake(0, 0);
-    _waveformSuperlayer.delegate = _waveformLayersDelegate;
-    
-    [self.layer addSublayer:_waveformSuperlayer];
+    _normalColorDirty = NO;
+    _progressColorDirty = NO;
 }
 
-- (NSUInteger)_prepareLayers:(CGFloat)pixelRatio {
-    NSUInteger numberOfLayers = (NSUInteger)ceil(pixelRatio * self.bounds.size.width) + 1;
-    int numbersOfChannels = _cache.actualNumberOfChannels;
+void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight, double sample, float x)
+{
+    float pixelHeight = halfGraphHeight * (1 - sample / noiseFloor);
     
-    while (numbersOfChannels != _waveforms.count) {
-        if (numbersOfChannels < _waveforms.count) {
-            NSArray *waveformLayers = [_waveforms lastObject];
-            [_waveforms removeLastObject];
-            
-            for (SCWaveformLayer *layer in waveformLayers) {
-                [layer removeFromSuperlayer];
-            }
-        } else {
-            [_waveforms addObject:[NSMutableArray new]];
-        }
+    if (pixelHeight < 0) {
+        pixelHeight = 0;
     }
     
-    for (int i = 0; i < numbersOfChannels; i++) {
-        NSMutableArray *waveformLayers = [_waveforms objectAtIndex:i];
-        
-        while (waveformLayers.count < numberOfLayers) {
-            SCWaveformLayer *layer = [SCWaveformLayer new];
-            layer.anchorPoint = CGPointMake(0, 0);
-            layer.delegate = _waveformLayersDelegate;
-            
-            [_waveformSuperlayer addSublayer:layer];
-            
-            [waveformLayers addObject:layer];
-        }
-        
-        while (waveformLayers.count > numberOfLayers) {
-            CALayer *layer = [waveformLayers lastObject];
-            [waveformLayers removeLastObject];
-            
-            [layer removeFromSuperlayer];
-        }
-        
-    }
+    CGContextMoveToPoint(context, x, halfGraphHeight - pixelHeight);
+    CGContextAddLineToPoint(context, x, halfGraphHeight + pixelHeight);
+    CGContextStrokePath(context);
 
-    return numberOfLayers;
 }
 
-- (void)layoutSubviews {
-    [super layoutSubviews];
++ (void)renderWaveformInContext:(CGContextRef)context asset:(AVAsset *)asset withColor:(UIColor *)color andSize:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled
+{
+    if (asset == nil) {
+        return;
+    }
     
-    CGFloat scale = [UIScreen mainScreen].scale;
-    CGFloat pixelRatio = scale * _precision;
-    CGSize size = self.bounds.size;
+    CGFloat pixelRatio = [UIScreen mainScreen].scale;
     size.width *= pixelRatio;
+    size.height *= pixelRatio;
+    
+    CGFloat widthInPixels = size.width;
+    CGFloat heightInPixels = size.height;
     
     NSError *error = nil;
-    if ([_cache readTimeRange:_timeRange width:size.width error:&error]) {
-        NSUInteger numberOfLayersPerChannel = [self _prepareLayers:pixelRatio];
-        CGRect waveformSuperlayerFrame = _waveformSuperlayer.frame;
-        waveformSuperlayerFrame.origin.y = 0;
+    AVAssetReader *reader = [[AVAssetReader alloc] initWithAsset:asset error:&error];
+    
+    NSArray *audioTrackArray = [asset tracksWithMediaType:AVMediaTypeAudio];
+    
+    if (audioTrackArray.count == 0) {
+        return;
+    }
+    
+    AVAssetTrack *songTrack = [audioTrackArray objectAtIndex:0];
+    
+    NSDictionary *outputSettingsDict = [[NSDictionary alloc] initWithObjectsAndKeys:
+                                        [NSNumber numberWithInt:kAudioFormatLinearPCM], AVFormatIDKey,
+                                        [NSNumber numberWithInt:16], AVLinearPCMBitDepthKey,
+                                        [NSNumber numberWithBool:NO], AVLinearPCMIsBigEndianKey,
+                                        [NSNumber numberWithBool:NO], AVLinearPCMIsFloatKey,
+                                        [NSNumber numberWithBool:NO], AVLinearPCMIsNonInterleaved,
+                                        nil];
+    AVAssetReaderTrackOutput *output = [[AVAssetReaderTrackOutput alloc] initWithTrack:songTrack outputSettings:outputSettingsDict];
+    [reader addOutput:output];
+    
+    UInt32 channelCount;
+    NSArray *formatDesc = songTrack.formatDescriptions;
+    for (unsigned int i = 0; i < [formatDesc count]; ++i) {
+        CMAudioFormatDescriptionRef item = (__bridge CMAudioFormatDescriptionRef)[formatDesc objectAtIndex:i];
+        const AudioStreamBasicDescription* fmtDesc = CMAudioFormatDescriptionGetStreamBasicDescription(item);
         
-        waveformSuperlayerFrame.size = self.waveformSize;
-        if (!CGSizeEqualToSize(waveformSuperlayerFrame.size, _waveformSuperlayer.frame.size)) {
-            _graphDirty = YES;
+        if (fmtDesc == nil) {
+            return;
         }
         
+        channelCount = fmtDesc->mChannelsPerFrame;
+    }
+    
+    CGContextSetAllowsAntialiasing(context, antialiasingEnabled);
+    CGContextSetLineWidth(context, 1.0);
+    CGContextSetStrokeColorWithColor(context, color.CGColor);
+    CGContextSetFillColorWithColor(context, color.CGColor);
+    
+    UInt32 bytesPerInputSample = 2 * channelCount;
+    unsigned long int totalSamples = (unsigned long int)asset.duration.value;
+    NSUInteger samplesPerPixel = totalSamples / (widthInPixels);
+    samplesPerPixel = samplesPerPixel < 1 ? 1 : samplesPerPixel;
+    [reader startReading];
+    
+    float halfGraphHeight = (heightInPixels / 2);
+    double bigSample = 0;
+    NSUInteger bigSampleCount = 0;
+    NSMutableData * data = [NSMutableData dataWithLength:32768];
+    
+    CGFloat currentX = 0;
+    while (reader.status == AVAssetReaderStatusReading) {
+        CMSampleBufferRef sampleBufferRef = [output copyNextSampleBuffer];
         
-        CMTime timePerPixel = CMTimeMultiplyByRatio(_timeRange.duration, 1, size.width);
-        double startRatio = CMTimeGetSeconds(_timeRange.start) / CMTimeGetSeconds(timePerPixel);
-        int newFirstVisibleIdx = floor(startRatio);
-        waveformSuperlayerFrame.origin.x = -startRatio / pixelRatio;
-        NSRange dirtyRange = NSMakeRange(0, numberOfLayersPerChannel);
-        
-        if (!_graphDirty) {
-            int offset = newFirstVisibleIdx - _firstVisibleIdx;
-            int absOffset = abs(offset);
+        if (sampleBufferRef) {
+            CMBlockBufferRef blockBufferRef = CMSampleBufferGetDataBuffer(sampleBufferRef);
+            size_t bufferLength = CMBlockBufferGetDataLength(blockBufferRef);
             
-            if (absOffset < numberOfLayersPerChannel / 2) {
-                dirtyRange.length = absOffset;
+            if (data.length < bufferLength) {
+                [data setLength:bufferLength];
+            }
+            
+            CMBlockBufferCopyDataBytes(blockBufferRef, 0, bufferLength, data.mutableBytes);
+            
+            SInt16 *samples = (SInt16 *)data.mutableBytes;
+            int sampleCount = (int)(bufferLength / bytesPerInputSample);
+            for (int i = 0; i < sampleCount; i++) {
+                Float32 sample = (Float32) *samples++;
+                sample = decibel(sample);
+                sample = minMaxX(sample, noiseFloor, 0);
                 
-                if (offset > 0) {
-                    dirtyRange.location = numberOfLayersPerChannel - offset;
-                    for (int i = 0; i < offset; i++) {
-                        for (NSMutableArray *waveformLayers in _waveforms) {
-                            SCWaveformLayer *layer = [waveformLayers objectAtIndex:0];
-                            [waveformLayers removeObjectAtIndex:0];
-                            [waveformLayers addObject:layer];
-                        }
-                    }
-                } else if (offset < 0) {
-                    dirtyRange.location = 0;
-                    for (int i = offset; i < 0; i++) {
-                        for (NSMutableArray *waveformLayers in _waveforms) {
-                            SCWaveformLayer *layer = [waveformLayers lastObject];
-                            [waveformLayers removeLastObject];
-                            [waveformLayers insertObject:layer atIndex:0];
-                        }
-                    }
+                for (int j = 1; j < channelCount; j++)
+                    samples++;
+                
+                bigSample += sample;
+                bigSampleCount++;
+                
+                if (bigSampleCount == samplesPerPixel) {
+                    double averageSample = bigSample / (double)bigSampleCount;
+                    
+                    SCRenderPixelWaveformInContext(context, halfGraphHeight, averageSample, currentX);
+                    
+                    currentX ++;
+                    bigSample = 0;
+                    bigSampleCount  = 0;
                 }
             }
-        }
-        
-        _firstVisibleIdx = newFirstVisibleIdx;
-        _waveformSuperlayer.frame = waveformSuperlayerFrame;
-        
-        [CATransaction begin];
-        [CATransaction setDisableActions:YES];
-        
-        CGColorRef normalColor = _normalColor.CGColor;
-        CGColorRef progressColor = _progressColor.CGColor;
-        int numberOfChannels = _waveforms.count;
-        CGFloat heightPerChannel = (size.height - _channelsPadding * (numberOfChannels - 1)) / numberOfChannels;
-        CGFloat halfHeightPerChannel = heightPerChannel / 2;
-        CGFloat bandWidth = 1 / pixelRatio;
-        CGFloat pointSize = 1.0 / scale / 2;
-        CMTime assetDuration = [_cache actualAssetDuration];
-        
-        [_cache readRange:dirtyRange atTime:_timeRange.start handler:^(int channel, int idx, float sample, CMTime time) {
-            if (idx < numberOfLayersPerChannel && channel < numberOfChannels) {
-                float pixelHeight = halfHeightPerChannel * (1 - sample / noiseFloor);
-                
-                if (pixelHeight < pointSize) {
-                    if (CMTIME_COMPARE_INLINE(time, <, kCMTimeZero) || CMTIME_COMPARE_INLINE(time, >=, assetDuration)) {
-                        pixelHeight = 0;
-                    } else {
-                        pixelHeight = pointSize;
-                    }
-                }
-                
-                SCWaveformLayer *layer = [[_waveforms objectAtIndex:channel] objectAtIndex:idx];
-                
-                CGColorRef destColor = nil;
-                
-                if (CMTIME_COMPARE_INLINE(time, >=, _progressTime)) {
-                    destColor = normalColor;
-                } else {
-                    destColor = progressColor;
-                }
-                
-                if (layer.backgroundColor != destColor) {
-                    layer.backgroundColor = destColor;
-                }
-                
-                layer.frame = CGRectMake((newFirstVisibleIdx + idx) * bandWidth, _channelsPadding * channel + heightPerChannel * channel + halfHeightPerChannel - pixelHeight,
-                                         _lineWidthRatio / pixelRatio, pixelHeight * 2);
-                                
-                layer.waveformTime = time;
-            }
-        }];
-
-        _graphDirty = NO;
-        
-        [CATransaction commit];
-    } else {
-        if (error != nil) {
-            NSLog(@"Unable to generate waveform: %@", error.localizedDescription);
+            CMSampleBufferInvalidate(sampleBufferRef);
+            CFRelease(sampleBufferRef);
         }
     }
+    
+    // Rendering the last pixels
+    bigSample = bigSampleCount > 0 ? bigSample / (double)bigSampleCount : noiseFloor;
+    while (currentX < size.width) {
+        SCRenderPixelWaveformInContext(context, halfGraphHeight, bigSample, currentX);
+        currentX++;
+    }
+
 }
 
-- (UIImage *)generateWaveformImageWithSize:(CGSize)size {
-    UIGraphicsBeginImageContextWithOptions(CGSizeMake(size.width, size.height), NO, 1);
++ (UIImage*)generateWaveformImage:(AVAsset *)asset withColor:(UIColor *)color andSize:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled
+{
+    CGFloat ratio = [UIScreen mainScreen].scale;
+    UIGraphicsBeginImageContextWithOptions(CGSizeMake(size.width * ratio, size.height * ratio), NO, 1);
     
-//    [self renderWaveformInContext:UIGraphicsGetCurrentContext() size:size];
+    [SCWaveformView renderWaveformInContext:UIGraphicsGetCurrentContext() asset:asset withColor:color andSize:size antialiasingEnabled:antialiasingEnabled];
     
     UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
     
@@ -258,7 +212,8 @@
     return image;
 }
 
-+ (UIImage*)recolorizeImage:(UIImage*)image withColor:(UIColor*)color {
++ (UIImage*)recolorizeImage:(UIImage*)image withColor:(UIColor*)color
+{
     CGRect imageRect = CGRectMake(0, 0, image.size.width, image.size.height);
     UIGraphicsBeginImageContextWithOptions(image.size, NO, image.scale);
     
@@ -276,142 +231,116 @@
     return newImage;
 }
 
-- (void)_updateLayersColor:(BOOL)updateColor lineWidth:(BOOL)lineWidth {
-    CGColorRef normalColor = _normalColor.CGColor;
-    CGColorRef progressColor = _progressColor.CGColor;
-    CGFloat pixelRatio = [UIScreen mainScreen].scale * _precision;
+- (void)generateWaveforms
+{
+    CGRect rect = self.bounds;
     
-    for (NSArray *layers in _waveforms) {
-        for (SCWaveformLayer *layer in layers) {
-            if (updateColor) {
-                CGColorRef destColor = progressColor;
-                if (CMTIME_COMPARE_INLINE(layer.waveformTime, >, _progressTime)) {
-                    destColor = normalColor;
-                }
-                
-                if (layer.backgroundColor != destColor) {
-                    layer.backgroundColor = destColor;
-                }
-            }
-            
-            if (lineWidth) {
-                CGRect bounds = layer.bounds;
-                bounds.size.width = _lineWidthRatio / pixelRatio;
-                layer.bounds = bounds;
-            }            
+    if (self.generatedNormalImage == nil && self.asset) {
+        self.generatedNormalImage = [SCWaveformView generateWaveformImage:self.asset withColor:self.normalColor andSize:CGSizeMake(rect.size.width, rect.size.height) antialiasingEnabled:self.antialiasingEnabled];
+        _normalColorDirty = NO;
+    }
+    
+    if (self.generatedNormalImage != nil) {
+        if (_normalColorDirty) {
+            self.generatedNormalImage = [SCWaveformView recolorizeImage:self.generatedNormalImage withColor:self.normalColor];
+            _normalColorDirty = NO;
+        }
+        
+        if (_progressColorDirty || self.generatedProgressImage == nil) {
+            self.generatedProgressImage = [SCWaveformView recolorizeImage:self.generatedNormalImage withColor:self.progressColor];
+            _progressColorDirty = NO;
         }
     }
+ 
 }
 
-- (void)setNormalColor:(UIColor *)normalColor {
+- (void)drawRect:(CGRect)rect
+{
+    [self generateWaveforms];
+    
+    [super drawRect:rect];
+}
+
+- (void)applyProgressToSubviews
+{
+    CGRect bs = self.bounds;
+    CGFloat progressWidth = bs.size.width * _progress;
+    _cropProgressView.frame = CGRectMake(0, 0, progressWidth, bs.size.height);
+    _cropNormalView.frame = CGRectMake(progressWidth, 0, bs.size.width - progressWidth, bs.size.height);
+    _normalImageView.frame = CGRectMake(-progressWidth, 0, bs.size.width, bs.size.height);
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    
+    CGRect bs = self.bounds;
+    _normalImageView.frame = bs;
+    _progressImageView.frame = bs;
+    
+    // If the size is now bigger than the generated images
+    if (bs.size.width > self.generatedNormalImage.size.width) {
+        self.generatedNormalImage = nil;
+        self.generatedProgressImage = nil;
+    }
+    
+    [self applyProgressToSubviews];
+}
+
+- (void)setNormalColor:(UIColor *)normalColor
+{
     _normalColor = normalColor;
-
-    [self _updateLayersColor:YES lineWidth:NO];
+    _normalColorDirty = YES;
+    [self setNeedsDisplay];
 }
 
-- (void)setProgressColor:(UIColor *)progressColor {
+- (void)setProgressColor:(UIColor *)progressColor
+{
     _progressColor = progressColor;
-    
-    [self _updateLayersColor:YES lineWidth:NO];
+    _progressColorDirty = YES;
+    [self setNeedsDisplay];
 }
 
-- (AVAsset *)asset {
-    return _cache.asset;
+- (void)setAsset:(AVAsset *)asset
+{
+    _asset = asset;
+    self.generatedProgressImage = nil;
+    self.generatedNormalImage = nil;
+    [self setNeedsDisplay];
 }
 
-- (void)_makeDirty {
-    _graphDirty = YES;
-    
-    [self setNeedsLayout];
+- (void)setProgress:(CGFloat)progress
+{
+    _progress = progress;
+    [self applyProgressToSubviews];
 }
 
-- (void)setAsset:(AVAsset *)asset {
-    [self willChangeValueForKey:@"asset"];
-    
-    _cache.asset = asset;
-    [self _makeDirty];
-    
-    [self didChangeValueForKey:@"asset"];
+- (UIImage*)generatedNormalImage
+{
+    return _normalImageView.image;
 }
 
-- (void)setProgressTime:(CMTime)progressTime {
-    _progressTime = progressTime;
-    
-    [self _updateLayersColor:YES lineWidth:NO];
+- (void)setGeneratedNormalImage:(UIImage *)generatedNormalImage
+{
+    _normalImageView.image = generatedNormalImage;
 }
 
-- (void)setTimeRange:(CMTimeRange)timeRange {
-    [self willChangeValueForKey:@"timeRange"];
-    
-    if (CMTIME_COMPARE_INLINE(timeRange.duration, !=, _timeRange.duration)) {
-        _graphDirty = YES;
-    }
-    
-    _timeRange = timeRange;
-
-    [self setNeedsLayout];
-    
-    [self didChangeValueForKey:@"timeRange"];
+- (UIImage*)generatedProgressImage
+{
+    return _progressImageView.image;
 }
 
-- (void)setPrecision:(CGFloat)precision {
-    _precision = precision;
-    
-    _graphDirty = YES;
-    
-    [self setNeedsLayout];
+- (void)setGeneratedProgressImage:(UIImage *)generatedProgressImage
+{
+    _progressImageView.image = generatedProgressImage;
 }
 
-- (void)setLineWidthRatio:(CGFloat)lineWidthRatio {
-    _lineWidthRatio = lineWidthRatio;
-    
-    [self _updateLayersColor:NO lineWidth:YES];
-}
-
-- (CGSize)waveformSize {
-    CMTimeRange timeRange = _timeRange;
-    CMTime assetDuration = [_cache actualAssetDuration];
-
-    if (CMTIME_IS_INVALID(assetDuration) || CMTIME_IS_INVALID(timeRange.duration) || CMTIME_IS_POSITIVE_INFINITY(timeRange.duration)) {
-        return CGSizeZero;
-    } else {
-        Float64 seconds = CMTimeGetSeconds(timeRange.duration);
-        Float64 assetDurationSeconds = CMTimeGetSeconds(assetDuration);
-        
-        return CGSizeMake(assetDurationSeconds / seconds * self.bounds.size.width, self.bounds.size.height);
-    }
-}
-
-- (CMTime)actualAssetDuration {
-    return _cache.actualAssetDuration;
-}
-
-- (void)setChannelStartIndex:(NSUInteger)channelStartIndex {
-    if (channelStartIndex != _channelStartIndex) {
-        _channelStartIndex = channelStartIndex;
-        
-        [self _makeDirty];
-    }
-}
-
-- (NSUInteger)channelEndIndex {
-    return _cache.maxChannels - 1;
-}
-
-- (void)setChannelEndIndex:(NSUInteger)channelEndIndex {
-    if ([self channelEndIndex] != channelEndIndex) {
-        _cache.maxChannels = channelEndIndex + 1;
-        
-        [self _makeDirty];
-    }
-}
-
-- (void)setChannelsPadding:(CGFloat)channelsPadding {
-    if (_channelsPadding != channelsPadding) {
-        _channelsPadding = channelsPadding;
-        
-        [self _makeDirty];
-
+- (void)setAntialiasingEnabled:(BOOL)antialiasingEnabled
+{
+    if (_antialiasingEnabled != antialiasingEnabled) {
+        _antialiasingEnabled = antialiasingEnabled;
+        self.generatedProgressImage = nil;
+        self.generatedNormalImage = nil;
+        [self setNeedsDisplay];        
     }
 }
 

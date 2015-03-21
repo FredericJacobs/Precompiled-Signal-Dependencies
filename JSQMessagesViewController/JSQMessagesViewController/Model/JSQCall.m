@@ -18,7 +18,6 @@
               callerDisplayName:(NSString *)senderDisplayName
                            date:(NSDate *)date
                          status:(CallStatus)status
-                  displayString:(NSString *)detailString
 {
     NSParameterAssert(senderId != nil);
     NSParameterAssert(senderDisplayName != nil);
@@ -30,7 +29,6 @@
         _date = [date copy];
         _status = status;
         _messageType = TSCallAdapter;
-        _detailString = [detailString stringByAppendingFormat:@" "];
         
     }
     return self;
@@ -47,6 +45,23 @@
     _senderId = nil;
     _senderDisplayName = nil;
     _date = nil;
+}
+
+-(NSString*)text
+{
+    NSString *name = _senderDisplayName;
+    
+    switch (self.status) {
+        case kCallMissed:
+            return [NSString stringWithFormat:@"Missed call from %@. ", name];
+        case kCallIncoming:
+            return [NSString stringWithFormat:@"You received a call from %@. ", name];
+        case kCallOutgoing:
+            return [NSString stringWithFormat:@"You called %@. ", name];
+        default:
+            return nil;
+            break;
+    }
 }
 
 -(NSString*)dateText
@@ -103,9 +118,9 @@
     JSQCall * aCall = (JSQCall*)object;
     
     return [self.senderId isEqualToString:aCall.senderId]
-    && [self.senderDisplayName isEqualToString:aCall.senderDisplayName]
-    && ([self.date compare:aCall.date] == NSOrderedSame)
-    && self.status == aCall.status;
+            && [self.senderDisplayName isEqualToString:aCall.senderDisplayName]
+            && ([self.date compare:aCall.date] == NSOrderedSame)
+            && self.status == aCall.status;
 }
 
 -(NSUInteger)hash
@@ -148,16 +163,9 @@
     return [[[self class] allocWithZone:zone]initWithCallerId:self.senderId
                                             callerDisplayName:self.senderDisplayName
                                                          date:self.date
-                                                       status:self.status
-                                                displayString:self.detailString];
+                                                       status:self.status];
 }
 
-- (NSUInteger)messageHash{
-    return self.hash;
-}
 
-- (NSString *)text{
-    return _detailString;
-}
 
 @end

@@ -38,10 +38,6 @@
 
 @implementation JSQMessagesCollectionView
 
-@dynamic dataSource;
-@dynamic delegate;
-@dynamic collectionViewLayout;
-
 #pragma mark - Initialization
 
 - (void)jsq_configureCollectionView
@@ -49,7 +45,7 @@
     [self setTranslatesAutoresizingMaskIntoConstraints:NO];
     
     self.backgroundColor = [UIColor whiteColor];
-    self.keyboardDismissMode = UIScrollViewKeyboardDismissModeNone;
+    self.keyboardDismissMode = UIScrollViewKeyboardDismissModeInteractive;
     self.alwaysBounceVertical = YES;
     self.bounces = YES;
     

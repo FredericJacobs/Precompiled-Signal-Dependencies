@@ -18,7 +18,7 @@
 
 #import "UIImage+JSQMessages.h"
 
-#import "NSBundle+JSQMessages.h"
+#import "JSQMessagesViewController.h"
 
 
 @implementation UIImage (JSQMessages)
@@ -50,9 +50,11 @@
 
 + (UIImage *)jsq_bubbleImageFromBundleWithName:(NSString *)name
 {
-    NSBundle *bundle = [NSBundle jsq_messagesAssetBundle];
-    NSString *path = [bundle pathForResource:name ofType:@"png" inDirectory:@"Images"];
-    return [UIImage imageWithContentsOfFile:path];
+    NSString *imagePath = [[NSBundle bundleForClass:[JSQMessagesViewController class]]
+                           pathForResource:[NSString stringWithFormat:@"JSQMessagesAssets.bundle/Images/%@", name]
+                           ofType:@"png"];
+    
+    return [UIImage imageWithContentsOfFile:imagePath];
 }
 
 + (UIImage *)jsq_bubbleRegularImage

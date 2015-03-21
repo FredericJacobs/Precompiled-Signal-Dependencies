@@ -28,7 +28,7 @@
     if (self) {
         self.invalidateFlowLayoutDelegateMetrics = NO;
         self.invalidateFlowLayoutAttributes = NO;
-        _invalidateFlowLayoutMessagesCache = NO;
+        _emptyCache = NO;
     }
     return self;
 }
@@ -45,8 +45,8 @@
 
 - (NSString *)description
 {
-    return [NSString stringWithFormat:@"<%@: invalidateFlowLayoutDelegateMetrics=%@, invalidateFlowLayoutAttributes=%@, invalidateDataSourceCounts=%@, invalidateFlowLayoutMessagesCache=%@>",
-            [self class], @(self.invalidateFlowLayoutDelegateMetrics), @(self.invalidateFlowLayoutAttributes), @(self.invalidateDataSourceCounts), @(self.invalidateFlowLayoutMessagesCache)];
+    return [NSString stringWithFormat:@"<%@: invalidateFlowLayoutDelegateMetrics=%@, invalidateFlowLayoutAttributes=%@, invalidateDataSourceCounts=%@, emptyCache=%@>",
+            [self class], @(self.invalidateFlowLayoutDelegateMetrics), @(self.invalidateFlowLayoutAttributes), @(self.invalidateDataSourceCounts), @(self.emptyCache)];
 }
 
 @end

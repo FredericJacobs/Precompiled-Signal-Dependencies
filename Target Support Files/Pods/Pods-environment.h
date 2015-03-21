@@ -104,9 +104,9 @@
 
 // JSQMessagesViewController
 #define COCOAPODS_POD_AVAILABLE_JSQMessagesViewController
-#define COCOAPODS_VERSION_MAJOR_JSQMessagesViewController 7
-#define COCOAPODS_VERSION_MINOR_JSQMessagesViewController 0
-#define COCOAPODS_VERSION_PATCH_JSQMessagesViewController 0
+#define COCOAPODS_VERSION_MAJOR_JSQMessagesViewController 6
+#define COCOAPODS_VERSION_MINOR_JSQMessagesViewController 1
+#define COCOAPODS_VERSION_PATCH_JSQMessagesViewController 3
 
 // JSQSystemSoundPlayer
 #define COCOAPODS_POD_AVAILABLE_JSQSystemSoundPlayer
@@ -146,9 +146,9 @@
 
 // SCWaveformView
 #define COCOAPODS_POD_AVAILABLE_SCWaveformView
-#define COCOAPODS_VERSION_MAJOR_SCWaveformView 2
+#define COCOAPODS_VERSION_MAJOR_SCWaveformView 1
 #define COCOAPODS_VERSION_MINOR_SCWaveformView 0
-#define COCOAPODS_VERSION_PATCH_SCWaveformView 6
+#define COCOAPODS_VERSION_PATCH_SCWaveformView 0
 
 // SQLCipher/common
 #define COCOAPODS_POD_AVAILABLE_SQLCipher_common

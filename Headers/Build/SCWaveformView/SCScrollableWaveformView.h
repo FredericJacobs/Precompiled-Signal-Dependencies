@@ -1,1 +1,0 @@
-../../../SCWaveformView/Sources/SCScrollableWaveformView.h
