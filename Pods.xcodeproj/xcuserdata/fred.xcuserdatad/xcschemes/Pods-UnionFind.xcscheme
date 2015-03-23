@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "E481A398C6F1A446FF3D93D1"
+               BlueprintIdentifier = "B315719B3355501395C84B54"
                BuildableName = "libPods-UnionFind.a"
                BlueprintName = "Pods-UnionFind"
                ReferencedContainer = "container:Pods.xcodeproj">
