@@ -450,6 +450,49 @@ SInt32 typeSize(PBExtensionType type) {
   }
 }
 
+- (id) dictionaryObjectValueForObject: (id) object {
+    switch (type) {
+        case PBExtensionTypeBool:
+        case PBExtensionTypeFixed32:
+        case PBExtensionTypeSFixed32:
+        case PBExtensionTypeFloat:
+        case PBExtensionTypeFixed64:
+        case PBExtensionTypeSFixed64:
+        case PBExtensionTypeDouble:
+        case PBExtensionTypeInt32:
+        case PBExtensionTypeInt64:
+        case PBExtensionTypeSInt32:
+        case PBExtensionTypeSInt64:
+        case PBExtensionTypeUInt32:
+        case PBExtensionTypeUInt64:
+        case PBExtensionTypeBytes:
+        case PBExtensionTypeString:
+        case PBExtensionTypeEnum:
+            return object;
+        case PBExtensionTypeGroup:
+        case PBExtensionTypeMessage:
+        {
+            NSMutableDictionary * dic = [NSMutableDictionary new];
+            [((PBAbstractMessage *)object) storeInDictionary:dic];
+            return dic;
+        }
+    }
+}
+
+- (void) addDictionaryEntriesOf:(id) value
+                             to:(NSMutableDictionary*) dictionary {
+    if (isRepeated) {
+        NSArray* values = value;
+        NSMutableArray * arr = [NSMutableArray new];
+        for (id singleValue in values) {
+            [arr addObject: [self dictionaryObjectValueForObject:singleValue]];
+        }
+        [dictionary setObject: arr forKey: NSStringFromClass([self extendedClass])];
+    } else {
+        [dictionary setObject: [self dictionaryObjectValueForObject:value] forKey: NSStringFromClass([self extendedClass])];
+    }
+}
+
 - (void) mergeMessageSetExtentionFromCodedInputStream:(PBCodedInputStream*) input
                                         unknownFields:(PBUnknownFieldSetBuilder*) unknownFields {
   @throw [NSException exceptionWithName:@"NYI" reason:@"" userInfo:nil];

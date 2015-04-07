@@ -121,6 +121,14 @@ static PBFileDescriptorSet* defaultPBFileDescriptorSetInstance = nil;
   }];
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
 }
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  for (PBFileDescriptorProto* element in self.fileArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"file"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
+}
 - (BOOL) isEqual:(id)other {
   if (other == self) {
     return YES;
@@ -260,15 +268,15 @@ static PBFileDescriptorSet* defaultPBFileDescriptorSetInstance = nil;
 - (BOOL) hasName {
   return !!hasName_;
 }
-- (void) setHasName:(BOOL) value_ {
-  hasName_ = !!value_;
+- (void) setHasName:(BOOL) _value_ {
+  hasName_ = !!_value_;
 }
 @synthesize name;
 - (BOOL) hasPackage {
   return !!hasPackage_;
 }
-- (void) setHasPackage:(BOOL) value_ {
-  hasPackage_ = !!value_;
+- (void) setHasPackage:(BOOL) _value_ {
+  hasPackage_ = !!_value_;
 }
 @synthesize package;
 @synthesize dependencyArray;
@@ -288,15 +296,15 @@ static PBFileDescriptorSet* defaultPBFileDescriptorSetInstance = nil;
 - (BOOL) hasOptions {
   return !!hasOptions_;
 }
-- (void) setHasOptions:(BOOL) value_ {
-  hasOptions_ = !!value_;
+- (void) setHasOptions:(BOOL) _value_ {
+  hasOptions_ = !!_value_;
 }
 @synthesize options;
 - (BOOL) hasSourceCodeInfo {
   return !!hasSourceCodeInfo_;
 }
-- (void) setHasSourceCodeInfo:(BOOL) value_ {
-  hasSourceCodeInfo_ = !!value_;
+- (void) setHasSourceCodeInfo:(BOOL) _value_ {
+  hasSourceCodeInfo_ = !!_value_;
 }
 @synthesize sourceCodeInfo;
 - (instancetype) init {
@@ -594,6 +602,58 @@ static PBFileDescriptorProto* defaultPBFileDescriptorProtoInstance = nil;
   }];
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
 }
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasName) {
+    [dictionary setObject: self.name forKey: @"name"];
+  }
+  if (self.hasPackage) {
+    [dictionary setObject: self.package forKey: @"package"];
+  }
+  [dictionary setObject:self.dependency forKey: @"dependency"];
+  for (PBDescriptorProto* element in self.messageTypeArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"messageType"];
+  }
+  for (PBEnumDescriptorProto* element in self.enumTypeArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"enumType"];
+  }
+  for (PBServiceDescriptorProto* element in self.serviceArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"service"];
+  }
+  for (PBFieldDescriptorProto* element in self.extensionArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"extension"];
+  }
+  if (self.hasOptions) {
+   NSMutableDictionary *messageDictionary = [NSMutableDictionary dictionary]; 
+   [self.options storeInDictionary:messageDictionary];
+   [dictionary setObject:[NSDictionary dictionaryWithDictionary:messageDictionary] forKey:@"options"];
+  }
+  if (self.hasSourceCodeInfo) {
+   NSMutableDictionary *messageDictionary = [NSMutableDictionary dictionary]; 
+   [self.sourceCodeInfo storeInDictionary:messageDictionary];
+   [dictionary setObject:[NSDictionary dictionaryWithDictionary:messageDictionary] forKey:@"sourceCodeInfo"];
+  }
+  NSMutableArray * publicDependencyArrayArray = [NSMutableArray new];
+  NSUInteger publicDependencyArrayCount=self.publicDependencyArray.count;
+  for(int i=0;i<publicDependencyArrayCount;i++){
+    [publicDependencyArrayArray addObject: @([self.publicDependencyArray int32AtIndex:i])];
+  }
+  [dictionary setObject: publicDependencyArrayArray forKey: @"publicDependency"];
+  NSMutableArray * weakDependencyArrayArray = [NSMutableArray new];
+  NSUInteger weakDependencyArrayCount=self.weakDependencyArray.count;
+  for(int i=0;i<weakDependencyArrayCount;i++){
+    [weakDependencyArrayArray addObject: @([self.weakDependencyArray int32AtIndex:i])];
+  }
+  [dictionary setObject: weakDependencyArrayArray forKey: @"weakDependency"];
+  [self.unknownFields storeInDictionary:dictionary];
+}
 - (BOOL) isEqual:(id)other {
   if (other == self) {
     return YES;
@@ -628,7 +688,7 @@ static PBFileDescriptorProto* defaultPBFileDescriptorProtoInstance = nil;
   if (self.hasPackage) {
     hashCode = hashCode * 31 + [self.package hash];
   }
-  [self.dependencyArray enumerateObjectsUsingBlock:^(id element, NSUInteger idx, BOOL *stop) {
+  [self.dependencyArray enumerateObjectsUsingBlock:^(NSString *element, NSUInteger idx, BOOL *stop) {
     hashCode = hashCode * 31 + [element hash];
   }];
   [self.messageTypeArray enumerateObjectsUsingBlock:^(PBDescriptorProto *element, NSUInteger idx, BOOL *stop) {
@@ -1110,8 +1170,8 @@ static PBFileDescriptorProto* defaultPBFileDescriptorProtoInstance = nil;
 - (BOOL) hasName {
   return !!hasName_;
 }
-- (void) setHasName:(BOOL) value_ {
-  hasName_ = !!value_;
+- (void) setHasName:(BOOL) _value_ {
+  hasName_ = !!_value_;
 }
 @synthesize name;
 @synthesize fieldArray;
@@ -1129,8 +1189,8 @@ static PBFileDescriptorProto* defaultPBFileDescriptorProtoInstance = nil;
 - (BOOL) hasOptions {
   return !!hasOptions_;
 }
-- (void) setHasOptions:(BOOL) value_ {
-  hasOptions_ = !!value_;
+- (void) setHasOptions:(BOOL) _value_ {
+  hasOptions_ = !!_value_;
 }
 @synthesize options;
 - (instancetype) init {
@@ -1368,6 +1428,47 @@ static PBDescriptorProto* defaultPBDescriptorProtoInstance = nil;
   }];
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
 }
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasName) {
+    [dictionary setObject: self.name forKey: @"name"];
+  }
+  for (PBFieldDescriptorProto* element in self.fieldArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"field"];
+  }
+  for (PBDescriptorProto* element in self.nestedTypeArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"nestedType"];
+  }
+  for (PBEnumDescriptorProto* element in self.enumTypeArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"enumType"];
+  }
+  for (PBDescriptorProtoExtensionRange* element in self.extensionRangeArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"extensionRange"];
+  }
+  for (PBFieldDescriptorProto* element in self.extensionArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"extension"];
+  }
+  if (self.hasOptions) {
+   NSMutableDictionary *messageDictionary = [NSMutableDictionary dictionary]; 
+   [self.options storeInDictionary:messageDictionary];
+   [dictionary setObject:[NSDictionary dictionaryWithDictionary:messageDictionary] forKey:@"options"];
+  }
+  for (PBOneofDescriptorProto* element in self.oneofDeclArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"oneofDecl"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
+}
 - (BOOL) isEqual:(id)other {
   if (other == self) {
     return YES;
@@ -1430,15 +1531,15 @@ static PBDescriptorProto* defaultPBDescriptorProtoInstance = nil;
 - (BOOL) hasStart {
   return !!hasStart_;
 }
-- (void) setHasStart:(BOOL) value_ {
-  hasStart_ = !!value_;
+- (void) setHasStart:(BOOL) _value_ {
+  hasStart_ = !!_value_;
 }
 @synthesize start;
 - (BOOL) hasEnd {
   return !!hasEnd_;
 }
-- (void) setHasEnd:(BOOL) value_ {
-  hasEnd_ = !!value_;
+- (void) setHasEnd:(BOOL) _value_ {
+  hasEnd_ = !!_value_;
 }
 @synthesize end;
 - (instancetype) init {
@@ -1527,6 +1628,15 @@ static PBDescriptorProtoExtensionRange* defaultPBDescriptorProtoExtensionRangeIn
     [output appendFormat:@"%@%@: %@\n", indent, @"end", [NSNumber numberWithInteger:self.end]];
   }
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasStart) {
+    [dictionary setObject: [NSNumber numberWithInteger:self.start] forKey: @"start"];
+  }
+  if (self.hasEnd) {
+    [dictionary setObject: [NSNumber numberWithInteger:self.end] forKey: @"end"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {
@@ -2016,64 +2126,64 @@ static PBDescriptorProtoExtensionRange* defaultPBDescriptorProtoExtensionRangeIn
 - (BOOL) hasName {
   return !!hasName_;
 }
-- (void) setHasName:(BOOL) value_ {
-  hasName_ = !!value_;
+- (void) setHasName:(BOOL) _value_ {
+  hasName_ = !!_value_;
 }
 @synthesize name;
 - (BOOL) hasNumber {
   return !!hasNumber_;
 }
-- (void) setHasNumber:(BOOL) value_ {
-  hasNumber_ = !!value_;
+- (void) setHasNumber:(BOOL) _value_ {
+  hasNumber_ = !!_value_;
 }
 @synthesize number;
 - (BOOL) hasLabel {
   return !!hasLabel_;
 }
-- (void) setHasLabel:(BOOL) value_ {
-  hasLabel_ = !!value_;
+- (void) setHasLabel:(BOOL) _value_ {
+  hasLabel_ = !!_value_;
 }
 @synthesize label;
 - (BOOL) hasType {
   return !!hasType_;
 }
-- (void) setHasType:(BOOL) value_ {
-  hasType_ = !!value_;
+- (void) setHasType:(BOOL) _value_ {
+  hasType_ = !!_value_;
 }
 @synthesize type;
 - (BOOL) hasTypeName {
   return !!hasTypeName_;
 }
-- (void) setHasTypeName:(BOOL) value_ {
-  hasTypeName_ = !!value_;
+- (void) setHasTypeName:(BOOL) _value_ {
+  hasTypeName_ = !!_value_;
 }
 @synthesize typeName;
 - (BOOL) hasExtendee {
   return !!hasExtendee_;
 }
-- (void) setHasExtendee:(BOOL) value_ {
-  hasExtendee_ = !!value_;
+- (void) setHasExtendee:(BOOL) _value_ {
+  hasExtendee_ = !!_value_;
 }
 @synthesize extendee;
 - (BOOL) hasDefaultValue {
   return !!hasDefaultValue_;
 }
-- (void) setHasDefaultValue:(BOOL) value_ {
-  hasDefaultValue_ = !!value_;
+- (void) setHasDefaultValue:(BOOL) _value_ {
+  hasDefaultValue_ = !!_value_;
 }
 @synthesize defaultValue;
 - (BOOL) hasOneofIndex {
   return !!hasOneofIndex_;
 }
-- (void) setHasOneofIndex:(BOOL) value_ {
-  hasOneofIndex_ = !!value_;
+- (void) setHasOneofIndex:(BOOL) _value_ {
+  hasOneofIndex_ = !!_value_;
 }
 @synthesize oneofIndex;
 - (BOOL) hasOptions {
   return !!hasOptions_;
 }
-- (void) setHasOptions:(BOOL) value_ {
-  hasOptions_ = !!value_;
+- (void) setHasOptions:(BOOL) _value_ {
+  hasOptions_ = !!_value_;
 }
 @synthesize options;
 - (instancetype) init {
@@ -2240,6 +2350,38 @@ static PBFieldDescriptorProto* defaultPBFieldDescriptorProtoInstance = nil;
     [output appendFormat:@"%@%@: %@\n", indent, @"oneofIndex", [NSNumber numberWithInteger:self.oneofIndex]];
   }
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasName) {
+    [dictionary setObject: self.name forKey: @"name"];
+  }
+  if (self.hasExtendee) {
+    [dictionary setObject: self.extendee forKey: @"extendee"];
+  }
+  if (self.hasNumber) {
+    [dictionary setObject: [NSNumber numberWithInteger:self.number] forKey: @"number"];
+  }
+  if (self.hasLabel) {
+    [dictionary setObject: @(self.label) forKey: @"label"];
+  }
+  if (self.hasType) {
+    [dictionary setObject: @(self.type) forKey: @"type"];
+  }
+  if (self.hasTypeName) {
+    [dictionary setObject: self.typeName forKey: @"typeName"];
+  }
+  if (self.hasDefaultValue) {
+    [dictionary setObject: self.defaultValue forKey: @"defaultValue"];
+  }
+  if (self.hasOptions) {
+   NSMutableDictionary *messageDictionary = [NSMutableDictionary dictionary]; 
+   [self.options storeInDictionary:messageDictionary];
+   [dictionary setObject:[NSDictionary dictionaryWithDictionary:messageDictionary] forKey:@"options"];
+  }
+  if (self.hasOneofIndex) {
+    [dictionary setObject: [NSNumber numberWithInteger:self.oneofIndex] forKey: @"oneofIndex"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {
@@ -2704,8 +2846,8 @@ NSString *NSStringFromPBFieldDescriptorProtoLabel(PBFieldDescriptorProtoLabel va
 - (BOOL) hasName {
   return !!hasName_;
 }
-- (void) setHasName:(BOOL) value_ {
-  hasName_ = !!value_;
+- (void) setHasName:(BOOL) _value_ {
+  hasName_ = !!_value_;
 }
 @synthesize name;
 - (instancetype) init {
@@ -2784,6 +2926,12 @@ static PBOneofDescriptorProto* defaultPBOneofDescriptorProtoInstance = nil;
     [output appendFormat:@"%@%@: %@\n", indent, @"name", self.name];
   }
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasName) {
+    [dictionary setObject: self.name forKey: @"name"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {
@@ -2906,8 +3054,8 @@ static PBOneofDescriptorProto* defaultPBOneofDescriptorProtoInstance = nil;
 - (BOOL) hasName {
   return !!hasName_;
 }
-- (void) setHasName:(BOOL) value_ {
-  hasName_ = !!value_;
+- (void) setHasName:(BOOL) _value_ {
+  hasName_ = !!_value_;
 }
 @synthesize name;
 @synthesize valueArray;
@@ -2915,8 +3063,8 @@ static PBOneofDescriptorProto* defaultPBOneofDescriptorProtoInstance = nil;
 - (BOOL) hasOptions {
   return !!hasOptions_;
 }
-- (void) setHasOptions:(BOOL) value_ {
-  hasOptions_ = !!value_;
+- (void) setHasOptions:(BOOL) _value_ {
+  hasOptions_ = !!_value_;
 }
 @synthesize options;
 - (instancetype) init {
@@ -3039,6 +3187,22 @@ static PBEnumDescriptorProto* defaultPBEnumDescriptorProtoInstance = nil;
     [output appendFormat:@"%@}\n", indent];
   }
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasName) {
+    [dictionary setObject: self.name forKey: @"name"];
+  }
+  for (PBEnumValueDescriptorProto* element in self.valueArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"value"];
+  }
+  if (self.hasOptions) {
+   NSMutableDictionary *messageDictionary = [NSMutableDictionary dictionary]; 
+   [self.options storeInDictionary:messageDictionary];
+   [dictionary setObject:[NSDictionary dictionaryWithDictionary:messageDictionary] forKey:@"options"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {
@@ -3246,22 +3410,22 @@ static PBEnumDescriptorProto* defaultPBEnumDescriptorProtoInstance = nil;
 - (BOOL) hasName {
   return !!hasName_;
 }
-- (void) setHasName:(BOOL) value_ {
-  hasName_ = !!value_;
+- (void) setHasName:(BOOL) _value_ {
+  hasName_ = !!_value_;
 }
 @synthesize name;
 - (BOOL) hasNumber {
   return !!hasNumber_;
 }
-- (void) setHasNumber:(BOOL) value_ {
-  hasNumber_ = !!value_;
+- (void) setHasNumber:(BOOL) _value_ {
+  hasNumber_ = !!_value_;
 }
 @synthesize number;
 - (BOOL) hasOptions {
   return !!hasOptions_;
 }
-- (void) setHasOptions:(BOOL) value_ {
-  hasOptions_ = !!value_;
+- (void) setHasOptions:(BOOL) _value_ {
+  hasOptions_ = !!_value_;
 }
 @synthesize options;
 - (instancetype) init {
@@ -3368,6 +3532,20 @@ static PBEnumValueDescriptorProto* defaultPBEnumValueDescriptorProtoInstance = n
     [output appendFormat:@"%@}\n", indent];
   }
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasName) {
+    [dictionary setObject: self.name forKey: @"name"];
+  }
+  if (self.hasNumber) {
+    [dictionary setObject: [NSNumber numberWithInteger:self.number] forKey: @"number"];
+  }
+  if (self.hasOptions) {
+   NSMutableDictionary *messageDictionary = [NSMutableDictionary dictionary]; 
+   [self.options storeInDictionary:messageDictionary];
+   [dictionary setObject:[NSDictionary dictionaryWithDictionary:messageDictionary] forKey:@"options"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {
@@ -3565,8 +3743,8 @@ static PBEnumValueDescriptorProto* defaultPBEnumValueDescriptorProtoInstance = n
 - (BOOL) hasName {
   return !!hasName_;
 }
-- (void) setHasName:(BOOL) value_ {
-  hasName_ = !!value_;
+- (void) setHasName:(BOOL) _value_ {
+  hasName_ = !!_value_;
 }
 @synthesize name;
 @synthesize methodArray;
@@ -3574,8 +3752,8 @@ static PBEnumValueDescriptorProto* defaultPBEnumValueDescriptorProtoInstance = n
 - (BOOL) hasOptions {
   return !!hasOptions_;
 }
-- (void) setHasOptions:(BOOL) value_ {
-  hasOptions_ = !!value_;
+- (void) setHasOptions:(BOOL) _value_ {
+  hasOptions_ = !!_value_;
 }
 @synthesize options;
 - (instancetype) init {
@@ -3698,6 +3876,22 @@ static PBServiceDescriptorProto* defaultPBServiceDescriptorProtoInstance = nil;
     [output appendFormat:@"%@}\n", indent];
   }
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasName) {
+    [dictionary setObject: self.name forKey: @"name"];
+  }
+  for (PBMethodDescriptorProto* element in self.methodArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"method"];
+  }
+  if (self.hasOptions) {
+   NSMutableDictionary *messageDictionary = [NSMutableDictionary dictionary]; 
+   [self.options storeInDictionary:messageDictionary];
+   [dictionary setObject:[NSDictionary dictionaryWithDictionary:messageDictionary] forKey:@"options"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {
@@ -3906,29 +4100,29 @@ static PBServiceDescriptorProto* defaultPBServiceDescriptorProtoInstance = nil;
 - (BOOL) hasName {
   return !!hasName_;
 }
-- (void) setHasName:(BOOL) value_ {
-  hasName_ = !!value_;
+- (void) setHasName:(BOOL) _value_ {
+  hasName_ = !!_value_;
 }
 @synthesize name;
 - (BOOL) hasInputType {
   return !!hasInputType_;
 }
-- (void) setHasInputType:(BOOL) value_ {
-  hasInputType_ = !!value_;
+- (void) setHasInputType:(BOOL) _value_ {
+  hasInputType_ = !!_value_;
 }
 @synthesize inputType;
 - (BOOL) hasOutputType {
   return !!hasOutputType_;
 }
-- (void) setHasOutputType:(BOOL) value_ {
-  hasOutputType_ = !!value_;
+- (void) setHasOutputType:(BOOL) _value_ {
+  hasOutputType_ = !!_value_;
 }
 @synthesize outputType;
 - (BOOL) hasOptions {
   return !!hasOptions_;
 }
-- (void) setHasOptions:(BOOL) value_ {
-  hasOptions_ = !!value_;
+- (void) setHasOptions:(BOOL) _value_ {
+  hasOptions_ = !!_value_;
 }
 @synthesize options;
 - (instancetype) init {
@@ -4045,6 +4239,23 @@ static PBMethodDescriptorProto* defaultPBMethodDescriptorProtoInstance = nil;
     [output appendFormat:@"%@}\n", indent];
   }
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasName) {
+    [dictionary setObject: self.name forKey: @"name"];
+  }
+  if (self.hasInputType) {
+    [dictionary setObject: self.inputType forKey: @"inputType"];
+  }
+  if (self.hasOutputType) {
+    [dictionary setObject: self.outputType forKey: @"outputType"];
+  }
+  if (self.hasOptions) {
+   NSMutableDictionary *messageDictionary = [NSMutableDictionary dictionary]; 
+   [self.options storeInDictionary:messageDictionary];
+   [dictionary setObject:[NSDictionary dictionaryWithDictionary:messageDictionary] forKey:@"options"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {
@@ -4279,114 +4490,114 @@ static PBMethodDescriptorProto* defaultPBMethodDescriptorProtoInstance = nil;
 - (BOOL) hasJavaPackage {
   return !!hasJavaPackage_;
 }
-- (void) setHasJavaPackage:(BOOL) value_ {
-  hasJavaPackage_ = !!value_;
+- (void) setHasJavaPackage:(BOOL) _value_ {
+  hasJavaPackage_ = !!_value_;
 }
 @synthesize javaPackage;
 - (BOOL) hasJavaOuterClassname {
   return !!hasJavaOuterClassname_;
 }
-- (void) setHasJavaOuterClassname:(BOOL) value_ {
-  hasJavaOuterClassname_ = !!value_;
+- (void) setHasJavaOuterClassname:(BOOL) _value_ {
+  hasJavaOuterClassname_ = !!_value_;
 }
 @synthesize javaOuterClassname;
 - (BOOL) hasJavaMultipleFiles {
   return !!hasJavaMultipleFiles_;
 }
-- (void) setHasJavaMultipleFiles:(BOOL) value_ {
-  hasJavaMultipleFiles_ = !!value_;
+- (void) setHasJavaMultipleFiles:(BOOL) _value_ {
+  hasJavaMultipleFiles_ = !!_value_;
 }
 - (BOOL) javaMultipleFiles {
   return !!javaMultipleFiles_;
 }
-- (void) setJavaMultipleFiles:(BOOL) value_ {
-  javaMultipleFiles_ = !!value_;
+- (void) setJavaMultipleFiles:(BOOL) _value_ {
+  javaMultipleFiles_ = !!_value_;
 }
 - (BOOL) hasJavaGenerateEqualsAndHash {
   return !!hasJavaGenerateEqualsAndHash_;
 }
-- (void) setHasJavaGenerateEqualsAndHash:(BOOL) value_ {
-  hasJavaGenerateEqualsAndHash_ = !!value_;
+- (void) setHasJavaGenerateEqualsAndHash:(BOOL) _value_ {
+  hasJavaGenerateEqualsAndHash_ = !!_value_;
 }
 - (BOOL) javaGenerateEqualsAndHash {
   return !!javaGenerateEqualsAndHash_;
 }
-- (void) setJavaGenerateEqualsAndHash:(BOOL) value_ {
-  javaGenerateEqualsAndHash_ = !!value_;
+- (void) setJavaGenerateEqualsAndHash:(BOOL) _value_ {
+  javaGenerateEqualsAndHash_ = !!_value_;
 }
 - (BOOL) hasJavaStringCheckUtf8 {
   return !!hasJavaStringCheckUtf8_;
 }
-- (void) setHasJavaStringCheckUtf8:(BOOL) value_ {
-  hasJavaStringCheckUtf8_ = !!value_;
+- (void) setHasJavaStringCheckUtf8:(BOOL) _value_ {
+  hasJavaStringCheckUtf8_ = !!_value_;
 }
 - (BOOL) javaStringCheckUtf8 {
   return !!javaStringCheckUtf8_;
 }
-- (void) setJavaStringCheckUtf8:(BOOL) value_ {
-  javaStringCheckUtf8_ = !!value_;
+- (void) setJavaStringCheckUtf8:(BOOL) _value_ {
+  javaStringCheckUtf8_ = !!_value_;
 }
 - (BOOL) hasOptimizeFor {
   return !!hasOptimizeFor_;
 }
-- (void) setHasOptimizeFor:(BOOL) value_ {
-  hasOptimizeFor_ = !!value_;
+- (void) setHasOptimizeFor:(BOOL) _value_ {
+  hasOptimizeFor_ = !!_value_;
 }
 @synthesize optimizeFor;
 - (BOOL) hasGoPackage {
   return !!hasGoPackage_;
 }
-- (void) setHasGoPackage:(BOOL) value_ {
-  hasGoPackage_ = !!value_;
+- (void) setHasGoPackage:(BOOL) _value_ {
+  hasGoPackage_ = !!_value_;
 }
 @synthesize goPackage;
 - (BOOL) hasCcGenericServices {
   return !!hasCcGenericServices_;
 }
-- (void) setHasCcGenericServices:(BOOL) value_ {
-  hasCcGenericServices_ = !!value_;
+- (void) setHasCcGenericServices:(BOOL) _value_ {
+  hasCcGenericServices_ = !!_value_;
 }
 - (BOOL) ccGenericServices {
   return !!ccGenericServices_;
 }
-- (void) setCcGenericServices:(BOOL) value_ {
-  ccGenericServices_ = !!value_;
+- (void) setCcGenericServices:(BOOL) _value_ {
+  ccGenericServices_ = !!_value_;
 }
 - (BOOL) hasJavaGenericServices {
   return !!hasJavaGenericServices_;
 }
-- (void) setHasJavaGenericServices:(BOOL) value_ {
-  hasJavaGenericServices_ = !!value_;
+- (void) setHasJavaGenericServices:(BOOL) _value_ {
+  hasJavaGenericServices_ = !!_value_;
 }
 - (BOOL) javaGenericServices {
   return !!javaGenericServices_;
 }
-- (void) setJavaGenericServices:(BOOL) value_ {
-  javaGenericServices_ = !!value_;
+- (void) setJavaGenericServices:(BOOL) _value_ {
+  javaGenericServices_ = !!_value_;
 }
 - (BOOL) hasPyGenericServices {
   return !!hasPyGenericServices_;
 }
-- (void) setHasPyGenericServices:(BOOL) value_ {
-  hasPyGenericServices_ = !!value_;
+- (void) setHasPyGenericServices:(BOOL) _value_ {
+  hasPyGenericServices_ = !!_value_;
 }
 - (BOOL) pyGenericServices {
   return !!pyGenericServices_;
 }
-- (void) setPyGenericServices:(BOOL) value_ {
-  pyGenericServices_ = !!value_;
+- (void) setPyGenericServices:(BOOL) _value_ {
+  pyGenericServices_ = !!_value_;
 }
 - (BOOL) hasDeprecated {
   return !!hasDeprecated_;
 }
-- (void) setHasDeprecated:(BOOL) value_ {
-  hasDeprecated_ = !!value_;
+- (void) setHasDeprecated:(BOOL) _value_ {
+  hasDeprecated_ = !!_value_;
 }
 - (BOOL) deprecated {
   return !!deprecated_;
 }
-- (void) setDeprecated:(BOOL) value_ {
-  deprecated_ = !!value_;
+- (void) setDeprecated:(BOOL) _value_ {
+  deprecated_ = !!_value_;
 }
 @synthesize uninterpretedOptionArray;
 @dynamic uninterpretedOption;
@@ -4603,6 +4814,47 @@ static PBFileOptions* defaultPBFileOptionsInstance = nil;
                                               to:536870912
                                       withIndent:indent];
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasJavaPackage) {
+    [dictionary setObject: self.javaPackage forKey: @"javaPackage"];
+  }
+  if (self.hasJavaOuterClassname) {
+    [dictionary setObject: self.javaOuterClassname forKey: @"javaOuterClassname"];
+  }
+  if (self.hasOptimizeFor) {
+    [dictionary setObject: @(self.optimizeFor) forKey: @"optimizeFor"];
+  }
+  if (self.hasJavaMultipleFiles) {
+    [dictionary setObject: [NSNumber numberWithBool:self.javaMultipleFiles] forKey: @"javaMultipleFiles"];
+  }
+  if (self.hasGoPackage) {
+    [dictionary setObject: self.goPackage forKey: @"goPackage"];
+  }
+  if (self.hasCcGenericServices) {
+    [dictionary setObject: [NSNumber numberWithBool:self.ccGenericServices] forKey: @"ccGenericServices"];
+  }
+  if (self.hasJavaGenericServices) {
+    [dictionary setObject: [NSNumber numberWithBool:self.javaGenericServices] forKey: @"javaGenericServices"];
+  }
+  if (self.hasPyGenericServices) {
+    [dictionary setObject: [NSNumber numberWithBool:self.pyGenericServices] forKey: @"pyGenericServices"];
+  }
+  if (self.hasJavaGenerateEqualsAndHash) {
+    [dictionary setObject: [NSNumber numberWithBool:self.javaGenerateEqualsAndHash] forKey: @"javaGenerateEqualsAndHash"];
+  }
+  if (self.hasDeprecated) {
+    [dictionary setObject: [NSNumber numberWithBool:self.deprecated] forKey: @"deprecated"];
+  }
+  if (self.hasJavaStringCheckUtf8) {
+    [dictionary setObject: [NSNumber numberWithBool:self.javaStringCheckUtf8] forKey: @"javaStringCheckUtf8"];
+  }
+  for (PBUninterpretedOption* element in self.uninterpretedOptionArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"uninterpretedOption"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {
@@ -5076,38 +5328,38 @@ NSString *NSStringFromPBFileOptionsOptimizeMode(PBFileOptionsOptimizeMode value)
 - (BOOL) hasMessageSetWireFormat {
   return !!hasMessageSetWireFormat_;
 }
-- (void) setHasMessageSetWireFormat:(BOOL) value_ {
-  hasMessageSetWireFormat_ = !!value_;
+- (void) setHasMessageSetWireFormat:(BOOL) _value_ {
+  hasMessageSetWireFormat_ = !!_value_;
 }
 - (BOOL) messageSetWireFormat {
   return !!messageSetWireFormat_;
 }
-- (void) setMessageSetWireFormat:(BOOL) value_ {
-  messageSetWireFormat_ = !!value_;
+- (void) setMessageSetWireFormat:(BOOL) _value_ {
+  messageSetWireFormat_ = !!_value_;
 }
 - (BOOL) hasNoStandardDescriptorAccessor {
   return !!hasNoStandardDescriptorAccessor_;
 }
-- (void) setHasNoStandardDescriptorAccessor:(BOOL) value_ {
-  hasNoStandardDescriptorAccessor_ = !!value_;
+- (void) setHasNoStandardDescriptorAccessor:(BOOL) _value_ {
+  hasNoStandardDescriptorAccessor_ = !!_value_;
 }
 - (BOOL) noStandardDescriptorAccessor {
   return !!noStandardDescriptorAccessor_;
 }
-- (void) setNoStandardDescriptorAccessor:(BOOL) value_ {
-  noStandardDescriptorAccessor_ = !!value_;
+- (void) setNoStandardDescriptorAccessor:(BOOL) _value_ {
+  noStandardDescriptorAccessor_ = !!_value_;
 }
 - (BOOL) hasDeprecated {
   return !!hasDeprecated_;
 }
-- (void) setHasDeprecated:(BOOL) value_ {
-  hasDeprecated_ = !!value_;
+- (void) setHasDeprecated:(BOOL) _value_ {
+  hasDeprecated_ = !!_value_;
 }
 - (BOOL) deprecated {
   return !!deprecated_;
 }
-- (void) setDeprecated:(BOOL) value_ {
-  deprecated_ = !!value_;
+- (void) setDeprecated:(BOOL) _value_ {
+  deprecated_ = !!_value_;
 }
 @synthesize uninterpretedOptionArray;
 @dynamic uninterpretedOption;
@@ -5244,6 +5496,23 @@ static PBMessageOptions* defaultPBMessageOptionsInstance = nil;
                                               to:536870912
                                       withIndent:indent];
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasMessageSetWireFormat) {
+    [dictionary setObject: [NSNumber numberWithBool:self.messageSetWireFormat] forKey: @"messageSetWireFormat"];
+  }
+  if (self.hasNoStandardDescriptorAccessor) {
+    [dictionary setObject: [NSNumber numberWithBool:self.noStandardDescriptorAccessor] forKey: @"noStandardDescriptorAccessor"];
+  }
+  if (self.hasDeprecated) {
+    [dictionary setObject: [NSNumber numberWithBool:self.deprecated] forKey: @"deprecated"];
+  }
+  for (PBUninterpretedOption* element in self.uninterpretedOptionArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"uninterpretedOption"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {
@@ -5468,64 +5737,64 @@ static PBMessageOptions* defaultPBMessageOptionsInstance = nil;
 - (BOOL) hasCtype {
   return !!hasCtype_;
 }
-- (void) setHasCtype:(BOOL) value_ {
-  hasCtype_ = !!value_;
+- (void) setHasCtype:(BOOL) _value_ {
+  hasCtype_ = !!_value_;
 }
 @synthesize ctype;
 - (BOOL) hasPacked {
   return !!hasPacked_;
 }
-- (void) setHasPacked:(BOOL) value_ {
-  hasPacked_ = !!value_;
+- (void) setHasPacked:(BOOL) _value_ {
+  hasPacked_ = !!_value_;
 }
 - (BOOL) packed {
   return !!packed_;
 }
-- (void) setPacked:(BOOL) value_ {
-  packed_ = !!value_;
+- (void) setPacked:(BOOL) _value_ {
+  packed_ = !!_value_;
 }
 - (BOOL) hasLazy {
   return !!hasLazy_;
 }
-- (void) setHasLazy:(BOOL) value_ {
-  hasLazy_ = !!value_;
+- (void) setHasLazy:(BOOL) _value_ {
+  hasLazy_ = !!_value_;
 }
 - (BOOL) lazy {
   return !!lazy_;
 }
-- (void) setLazy:(BOOL) value_ {
-  lazy_ = !!value_;
+- (void) setLazy:(BOOL) _value_ {
+  lazy_ = !!_value_;
 }
 - (BOOL) hasDeprecated {
   return !!hasDeprecated_;
 }
-- (void) setHasDeprecated:(BOOL) value_ {
-  hasDeprecated_ = !!value_;
+- (void) setHasDeprecated:(BOOL) _value_ {
+  hasDeprecated_ = !!_value_;
 }
 - (BOOL) deprecated {
   return !!deprecated_;
 }
-- (void) setDeprecated:(BOOL) value_ {
-  deprecated_ = !!value_;
+- (void) setDeprecated:(BOOL) _value_ {
+  deprecated_ = !!_value_;
 }
 - (BOOL) hasExperimentalMapKey {
   return !!hasExperimentalMapKey_;
 }
-- (void) setHasExperimentalMapKey:(BOOL) value_ {
-  hasExperimentalMapKey_ = !!value_;
+- (void) setHasExperimentalMapKey:(BOOL) _value_ {
+  hasExperimentalMapKey_ = !!_value_;
 }
 @synthesize experimentalMapKey;
 - (BOOL) hasWeak {
   return !!hasWeak_;
 }
-- (void) setHasWeak:(BOOL) value_ {
-  hasWeak_ = !!value_;
+- (void) setHasWeak:(BOOL) _value_ {
+  hasWeak_ = !!_value_;
 }
 - (BOOL) weak {
   return !!weak_;
 }
-- (void) setWeak:(BOOL) value_ {
-  weak_ = !!value_;
+- (void) setWeak:(BOOL) _value_ {
+  weak_ = !!_value_;
 }
 @synthesize uninterpretedOptionArray;
 @dynamic uninterpretedOption;
@@ -5692,6 +5961,32 @@ static PBFieldOptions* defaultPBFieldOptionsInstance = nil;
                                               to:536870912
                                       withIndent:indent];
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasCtype) {
+    [dictionary setObject: @(self.ctype) forKey: @"ctype"];
+  }
+  if (self.hasPacked) {
+    [dictionary setObject: [NSNumber numberWithBool:self.packed] forKey: @"packed"];
+  }
+  if (self.hasDeprecated) {
+    [dictionary setObject: [NSNumber numberWithBool:self.deprecated] forKey: @"deprecated"];
+  }
+  if (self.hasLazy) {
+    [dictionary setObject: [NSNumber numberWithBool:self.lazy] forKey: @"lazy"];
+  }
+  if (self.hasExperimentalMapKey) {
+    [dictionary setObject: self.experimentalMapKey forKey: @"experimentalMapKey"];
+  }
+  if (self.hasWeak) {
+    [dictionary setObject: [NSNumber numberWithBool:self.weak] forKey: @"weak"];
+  }
+  for (PBUninterpretedOption* element in self.uninterpretedOptionArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"uninterpretedOption"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {
@@ -6024,26 +6319,26 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value) {
 - (BOOL) hasAllowAlias {
   return !!hasAllowAlias_;
 }
-- (void) setHasAllowAlias:(BOOL) value_ {
-  hasAllowAlias_ = !!value_;
+- (void) setHasAllowAlias:(BOOL) _value_ {
+  hasAllowAlias_ = !!_value_;
 }
 - (BOOL) allowAlias {
   return !!allowAlias_;
 }
-- (void) setAllowAlias:(BOOL) value_ {
-  allowAlias_ = !!value_;
+- (void) setAllowAlias:(BOOL) _value_ {
+  allowAlias_ = !!_value_;
 }
 - (BOOL) hasDeprecated {
   return !!hasDeprecated_;
 }
-- (void) setHasDeprecated:(BOOL) value_ {
-  hasDeprecated_ = !!value_;
+- (void) setHasDeprecated:(BOOL) _value_ {
+  hasDeprecated_ = !!_value_;
 }
 - (BOOL) deprecated {
   return !!deprecated_;
 }
-- (void) setDeprecated:(BOOL) value_ {
-  deprecated_ = !!value_;
+- (void) setDeprecated:(BOOL) _value_ {
+  deprecated_ = !!_value_;
 }
 @synthesize uninterpretedOptionArray;
 @dynamic uninterpretedOption;
@@ -6170,6 +6465,20 @@ static PBEnumOptions* defaultPBEnumOptionsInstance = nil;
                                               to:536870912
                                       withIndent:indent];
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasAllowAlias) {
+    [dictionary setObject: [NSNumber numberWithBool:self.allowAlias] forKey: @"allowAlias"];
+  }
+  if (self.hasDeprecated) {
+    [dictionary setObject: [NSNumber numberWithBool:self.deprecated] forKey: @"deprecated"];
+  }
+  for (PBUninterpretedOption* element in self.uninterpretedOptionArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"uninterpretedOption"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {
@@ -6361,14 +6670,14 @@ static PBEnumOptions* defaultPBEnumOptionsInstance = nil;
 - (BOOL) hasDeprecated {
   return !!hasDeprecated_;
 }
-- (void) setHasDeprecated:(BOOL) value_ {
-  hasDeprecated_ = !!value_;
+- (void) setHasDeprecated:(BOOL) _value_ {
+  hasDeprecated_ = !!_value_;
 }
 - (BOOL) deprecated {
   return !!deprecated_;
 }
-- (void) setDeprecated:(BOOL) value_ {
-  deprecated_ = !!value_;
+- (void) setDeprecated:(BOOL) _value_ {
+  deprecated_ = !!_value_;
 }
 @synthesize uninterpretedOptionArray;
 @dynamic uninterpretedOption;
@@ -6485,6 +6794,17 @@ static PBEnumValueOptions* defaultPBEnumValueOptionsInstance = nil;
                                               to:536870912
                                       withIndent:indent];
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasDeprecated) {
+    [dictionary setObject: [NSNumber numberWithBool:self.deprecated] forKey: @"deprecated"];
+  }
+  for (PBUninterpretedOption* element in self.uninterpretedOptionArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"uninterpretedOption"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {
@@ -6648,14 +6968,14 @@ static PBEnumValueOptions* defaultPBEnumValueOptionsInstance = nil;
 - (BOOL) hasDeprecated {
   return !!hasDeprecated_;
 }
-- (void) setHasDeprecated:(BOOL) value_ {
-  hasDeprecated_ = !!value_;
+- (void) setHasDeprecated:(BOOL) _value_ {
+  hasDeprecated_ = !!_value_;
 }
 - (BOOL) deprecated {
   return !!deprecated_;
 }
-- (void) setDeprecated:(BOOL) value_ {
-  deprecated_ = !!value_;
+- (void) setDeprecated:(BOOL) _value_ {
+  deprecated_ = !!_value_;
 }
 @synthesize uninterpretedOptionArray;
 @dynamic uninterpretedOption;
@@ -6772,6 +7092,17 @@ static PBServiceOptions* defaultPBServiceOptionsInstance = nil;
                                               to:536870912
                                       withIndent:indent];
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasDeprecated) {
+    [dictionary setObject: [NSNumber numberWithBool:self.deprecated] forKey: @"deprecated"];
+  }
+  for (PBUninterpretedOption* element in self.uninterpretedOptionArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"uninterpretedOption"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {
@@ -6935,14 +7266,14 @@ static PBServiceOptions* defaultPBServiceOptionsInstance = nil;
 - (BOOL) hasDeprecated {
   return !!hasDeprecated_;
 }
-- (void) setHasDeprecated:(BOOL) value_ {
-  hasDeprecated_ = !!value_;
+- (void) setHasDeprecated:(BOOL) _value_ {
+  hasDeprecated_ = !!_value_;
 }
 - (BOOL) deprecated {
   return !!deprecated_;
 }
-- (void) setDeprecated:(BOOL) value_ {
-  deprecated_ = !!value_;
+- (void) setDeprecated:(BOOL) _value_ {
+  deprecated_ = !!_value_;
 }
 @synthesize uninterpretedOptionArray;
 @dynamic uninterpretedOption;
@@ -7059,6 +7390,17 @@ static PBMethodOptions* defaultPBMethodOptionsInstance = nil;
                                               to:536870912
                                       withIndent:indent];
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasDeprecated) {
+    [dictionary setObject: [NSNumber numberWithBool:self.deprecated] forKey: @"deprecated"];
+  }
+  for (PBUninterpretedOption* element in self.uninterpretedOptionArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"uninterpretedOption"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {
@@ -7229,43 +7571,43 @@ static PBMethodOptions* defaultPBMethodOptionsInstance = nil;
 - (BOOL) hasIdentifierValue {
   return !!hasIdentifierValue_;
 }
-- (void) setHasIdentifierValue:(BOOL) value_ {
-  hasIdentifierValue_ = !!value_;
+- (void) setHasIdentifierValue:(BOOL) _value_ {
+  hasIdentifierValue_ = !!_value_;
 }
 @synthesize identifierValue;
 - (BOOL) hasPositiveIntValue {
   return !!hasPositiveIntValue_;
 }
-- (void) setHasPositiveIntValue:(BOOL) value_ {
-  hasPositiveIntValue_ = !!value_;
+- (void) setHasPositiveIntValue:(BOOL) _value_ {
+  hasPositiveIntValue_ = !!_value_;
 }
 @synthesize positiveIntValue;
 - (BOOL) hasNegativeIntValue {
   return !!hasNegativeIntValue_;
 }
-- (void) setHasNegativeIntValue:(BOOL) value_ {
-  hasNegativeIntValue_ = !!value_;
+- (void) setHasNegativeIntValue:(BOOL) _value_ {
+  hasNegativeIntValue_ = !!_value_;
 }
 @synthesize negativeIntValue;
 - (BOOL) hasDoubleValue {
   return !!hasDoubleValue_;
 }
-- (void) setHasDoubleValue:(BOOL) value_ {
-  hasDoubleValue_ = !!value_;
+- (void) setHasDoubleValue:(BOOL) _value_ {
+  hasDoubleValue_ = !!_value_;
 }
 @synthesize doubleValue;
 - (BOOL) hasStringValue {
   return !!hasStringValue_;
 }
-- (void) setHasStringValue:(BOOL) value_ {
-  hasStringValue_ = !!value_;
+- (void) setHasStringValue:(BOOL) _value_ {
+  hasStringValue_ = !!_value_;
 }
 @synthesize stringValue;
 - (BOOL) hasAggregateValue {
   return !!hasAggregateValue_;
 }
-- (void) setHasAggregateValue:(BOOL) value_ {
-  hasAggregateValue_ = !!value_;
+- (void) setHasAggregateValue:(BOOL) _value_ {
+  hasAggregateValue_ = !!_value_;
 }
 @synthesize aggregateValue;
 - (instancetype) init {
@@ -7421,6 +7763,32 @@ static PBUninterpretedOption* defaultPBUninterpretedOptionInstance = nil;
   }
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
 }
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  for (PBUninterpretedOptionNamePart* element in self.nameArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"name"];
+  }
+  if (self.hasIdentifierValue) {
+    [dictionary setObject: self.identifierValue forKey: @"identifierValue"];
+  }
+  if (self.hasPositiveIntValue) {
+    [dictionary setObject: [NSNumber numberWithLongLong:self.positiveIntValue] forKey: @"positiveIntValue"];
+  }
+  if (self.hasNegativeIntValue) {
+    [dictionary setObject: [NSNumber numberWithLongLong:self.negativeIntValue] forKey: @"negativeIntValue"];
+  }
+  if (self.hasDoubleValue) {
+    [dictionary setObject: [NSNumber numberWithDouble:self.doubleValue] forKey: @"doubleValue"];
+  }
+  if (self.hasStringValue) {
+    [dictionary setObject: self.stringValue forKey: @"stringValue"];
+  }
+  if (self.hasAggregateValue) {
+    [dictionary setObject: self.aggregateValue forKey: @"aggregateValue"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
+}
 - (BOOL) isEqual:(id)other {
   if (other == self) {
     return YES;
@@ -7483,21 +7851,21 @@ static PBUninterpretedOption* defaultPBUninterpretedOptionInstance = nil;
 - (BOOL) hasNamePart {
   return !!hasNamePart_;
 }
-- (void) setHasNamePart:(BOOL) value_ {
-  hasNamePart_ = !!value_;
+- (void) setHasNamePart:(BOOL) _value_ {
+  hasNamePart_ = !!_value_;
 }
 @synthesize namePart;
 - (BOOL) hasIsExtension {
   return !!hasIsExtension_;
 }
-- (void) setHasIsExtension:(BOOL) value_ {
-  hasIsExtension_ = !!value_;
+- (void) setHasIsExtension:(BOOL) _value_ {
+  hasIsExtension_ = !!_value_;
 }
 - (BOOL) isExtension {
   return !!isExtension_;
 }
-- (void) setIsExtension:(BOOL) value_ {
-  isExtension_ = !!value_;
+- (void) setIsExtension:(BOOL) _value_ {
+  isExtension_ = !!_value_;
 }
 - (instancetype) init {
   if ((self = [super init])) {
@@ -7591,6 +7959,15 @@ static PBUninterpretedOptionNamePart* defaultPBUninterpretedOptionNamePartInstan
     [output appendFormat:@"%@%@: %@\n", indent, @"isExtension", [NSNumber numberWithBool:self.isExtension]];
   }
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasNamePart) {
+    [dictionary setObject: self.namePart forKey: @"namePart"];
+  }
+  if (self.hasIsExtension) {
+    [dictionary setObject: [NSNumber numberWithBool:self.isExtension] forKey: @"isExtension"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {
@@ -8059,6 +8436,14 @@ static PBSourceCodeInfo* defaultPBSourceCodeInfoInstance = nil;
   }];
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
 }
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  for (PBSourceCodeInfoLocation* element in self.locationArray) {
+    NSMutableDictionary *elementDictionary = [NSMutableDictionary dictionary];
+    [element storeInDictionary:elementDictionary];
+    [dictionary setObject:[NSDictionary dictionaryWithDictionary:elementDictionary] forKey:@"location"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
+}
 - (BOOL) isEqual:(id)other {
   if (other == self) {
     return YES;
@@ -8097,15 +8482,15 @@ static PBSourceCodeInfo* defaultPBSourceCodeInfoInstance = nil;
 - (BOOL) hasLeadingComments {
   return !!hasLeadingComments_;
 }
-- (void) setHasLeadingComments:(BOOL) value_ {
-  hasLeadingComments_ = !!value_;
+- (void) setHasLeadingComments:(BOOL) _value_ {
+  hasLeadingComments_ = !!_value_;
 }
 @synthesize leadingComments;
 - (BOOL) hasTrailingComments {
   return !!hasTrailingComments_;
 }
-- (void) setHasTrailingComments:(BOOL) value_ {
-  hasTrailingComments_ = !!value_;
+- (void) setHasTrailingComments:(BOOL) _value_ {
+  hasTrailingComments_ = !!_value_;
 }
 @synthesize trailingComments;
 - (instancetype) init {
@@ -8258,6 +8643,27 @@ static PBSourceCodeInfoLocation* defaultPBSourceCodeInfoLocationInstance = nil;
     [output appendFormat:@"%@%@: %@\n", indent, @"trailingComments", self.trailingComments];
   }
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  NSMutableArray * pathArrayArray = [NSMutableArray new];
+  NSUInteger pathArrayCount=self.pathArray.count;
+  for(int i=0;i<pathArrayCount;i++){
+    [pathArrayArray addObject: @([self.pathArray int32AtIndex:i])];
+  }
+  [dictionary setObject: pathArrayArray forKey: @"path"];
+  NSMutableArray * spanArrayArray = [NSMutableArray new];
+  NSUInteger spanArrayCount=self.spanArray.count;
+  for(int i=0;i<spanArrayCount;i++){
+    [spanArrayArray addObject: @([self.spanArray int32AtIndex:i])];
+  }
+  [dictionary setObject: spanArrayArray forKey: @"span"];
+  if (self.hasLeadingComments) {
+    [dictionary setObject: self.leadingComments forKey: @"leadingComments"];
+  }
+  if (self.hasTrailingComments) {
+    [dictionary setObject: self.trailingComments forKey: @"trailingComments"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {

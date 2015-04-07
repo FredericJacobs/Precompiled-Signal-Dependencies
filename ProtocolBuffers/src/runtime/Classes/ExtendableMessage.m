@@ -107,6 +107,19 @@
   }  
 }
 
+- (void) addExtensionDictionaryEntriesToMutableDictionary:(NSMutableDictionary*) output
+                                            from:(int32_t) startInclusive
+                                              to:(int32_t) endExclusive {
+  NSArray* sortedKeys = [extensionMap.allKeys sortedArrayUsingSelector:@selector(compare:)];
+  for (NSNumber* number in sortedKeys) {
+    int32_t fieldNumber = [number intValue];
+    if (fieldNumber >= startInclusive && fieldNumber < endExclusive) {
+      id<PBExtensionField> extension = [extensionRegistry objectForKey:number];
+      id value = [extensionMap objectForKey:number];
+      [extension addDictionaryEntriesOf:value to:output];
+    }
+  }  
+}
 
 - (BOOL) isEqualExtensionsInOther:(PBExtendableMessage*)otherMessage
                              from:(SInt32) startInclusive

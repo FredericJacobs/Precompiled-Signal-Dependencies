@@ -45,15 +45,15 @@ static PBExtensionRegistry* extensionRegistry = nil;
 - (BOOL) hasPackage {
   return !!hasPackage_;
 }
-- (void) setHasPackage:(BOOL) value_ {
-  hasPackage_ = !!value_;
+- (void) setHasPackage:(BOOL) _value_ {
+  hasPackage_ = !!_value_;
 }
 @synthesize package;
 - (BOOL) hasClassPrefix {
   return !!hasClassPrefix_;
 }
-- (void) setHasClassPrefix:(BOOL) value_ {
-  hasClassPrefix_ = !!value_;
+- (void) setHasClassPrefix:(BOOL) _value_ {
+  hasClassPrefix_ = !!_value_;
 }
 @synthesize classPrefix;
 - (instancetype) init {
@@ -142,6 +142,15 @@ static ObjectiveCFileOptions* defaultObjectiveCFileOptionsInstance = nil;
     [output appendFormat:@"%@%@: %@\n", indent, @"classPrefix", self.classPrefix];
   }
   [self.unknownFields writeDescriptionTo:output withIndent:indent];
+}
+- (void) storeInDictionary:(NSMutableDictionary *)dictionary {
+  if (self.hasPackage) {
+    [dictionary setObject: self.package forKey: @"package"];
+  }
+  if (self.hasClassPrefix) {
+    [dictionary setObject: self.classPrefix forKey: @"classPrefix"];
+  }
+  [self.unknownFields storeInDictionary:dictionary];
 }
 - (BOOL) isEqual:(id)other {
   if (other == self) {

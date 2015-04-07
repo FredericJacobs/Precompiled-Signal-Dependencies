@@ -40,4 +40,6 @@
 - (void) writeDescriptionOf:(id) value
                          to:(NSMutableString*) output
                  withIndent:(NSString*) indent;
+- (void) addDictionaryEntriesOf:(id) value
+                             to:(NSMutableDictionary*) dictionary;
 @end

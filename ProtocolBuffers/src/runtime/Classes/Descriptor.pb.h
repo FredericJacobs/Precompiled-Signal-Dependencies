@@ -46,17 +46,7 @@
 @class PBUninterpretedOptionBuilder;
 @class PBUninterpretedOptionNamePart;
 @class PBUninterpretedOptionNamePartBuilder;
-#ifndef __has_feature
-  #define __has_feature(x) 0 // Compatibility with non-clang compilers.
-#endif // __has_feature
 
-#ifndef NS_RETURNS_NOT_RETAINED
-  #if __has_feature(attribute_ns_returns_not_retained)
-    #define NS_RETURNS_NOT_RETAINED __attribute__((ns_returns_not_retained))
-  #else
-    #define NS_RETURNS_NOT_RETAINED
-  #endif
-#endif
 
 typedef NS_ENUM(SInt32, PBFieldDescriptorProtoType) {
   PBFieldDescriptorProtoTypeTypeDouble = 1,
@@ -116,6 +106,7 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 + (void) registerAllExtensions:(PBMutableExtensionRegistry*) registry;
 @end
 
+#define FileDescriptorSet_file @"file"
 @interface PBFileDescriptorSet : PBGeneratedMessage<GeneratedMessageProtocol> {
 @private
   NSMutableArray * fileArray;
@@ -165,6 +156,17 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBFileDescriptorSetBuilder *)clearFile;
 @end
 
+#define FileDescriptorProto_name @"name"
+#define FileDescriptorProto_package @"package"
+#define FileDescriptorProto_dependency @"dependency"
+#define FileDescriptorProto_public_dependency @"publicDependency"
+#define FileDescriptorProto_weak_dependency @"weakDependency"
+#define FileDescriptorProto_message_type @"messageType"
+#define FileDescriptorProto_enum_type @"enumType"
+#define FileDescriptorProto_service @"service"
+#define FileDescriptorProto_extension @"extension"
+#define FileDescriptorProto_options @"options"
+#define FileDescriptorProto_source_code_info @"sourceCodeInfo"
 @interface PBFileDescriptorProto : PBGeneratedMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasName_:1;
@@ -310,6 +312,14 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBFileDescriptorProtoBuilder*) clearSourceCodeInfo;
 @end
 
+#define DescriptorProto_name @"name"
+#define DescriptorProto_field @"field"
+#define DescriptorProto_extension @"extension"
+#define DescriptorProto_nested_type @"nestedType"
+#define DescriptorProto_enum_type @"enumType"
+#define DescriptorProto_extension_range @"extensionRange"
+#define DescriptorProto_oneof_decl @"oneofDecl"
+#define DescriptorProto_options @"options"
 @interface PBDescriptorProto : PBGeneratedMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasName_:1;
@@ -358,6 +368,8 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 + (PBDescriptorProto*) parseFromCodedInputStream:(PBCodedInputStream*) input extensionRegistry:(PBExtensionRegistry*) extensionRegistry;
 @end
 
+#define ExtensionRange_start @"start"
+#define ExtensionRange_end @"end"
 @interface PBDescriptorProtoExtensionRange : PBGeneratedMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasStart_:1;
@@ -482,6 +494,15 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBDescriptorProtoBuilder*) clearOptions;
 @end
 
+#define FieldDescriptorProto_name @"name"
+#define FieldDescriptorProto_number @"number"
+#define FieldDescriptorProto_label @"label"
+#define FieldDescriptorProto_type @"type"
+#define FieldDescriptorProto_type_name @"typeName"
+#define FieldDescriptorProto_extendee @"extendee"
+#define FieldDescriptorProto_default_value @"defaultValue"
+#define FieldDescriptorProto_oneof_index @"oneofIndex"
+#define FieldDescriptorProto_options @"options"
 @interface PBFieldDescriptorProto : PBGeneratedMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasNumber_:1;
@@ -605,6 +626,7 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBFieldDescriptorProtoBuilder*) clearOptions;
 @end
 
+#define OneofDescriptorProto_name @"name"
 @interface PBOneofDescriptorProto : PBGeneratedMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasName_:1;
@@ -654,6 +676,9 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBOneofDescriptorProtoBuilder*) clearName;
 @end
 
+#define EnumDescriptorProto_name @"name"
+#define EnumDescriptorProto_value @"value"
+#define EnumDescriptorProto_options @"options"
 @interface PBEnumDescriptorProto : PBGeneratedMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasName_:1;
@@ -723,6 +748,9 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBEnumDescriptorProtoBuilder*) clearOptions;
 @end
 
+#define EnumValueDescriptorProto_name @"name"
+#define EnumValueDescriptorProto_number @"number"
+#define EnumValueDescriptorProto_options @"options"
 @interface PBEnumValueDescriptorProto : PBGeneratedMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasNumber_:1;
@@ -792,6 +820,9 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBEnumValueDescriptorProtoBuilder*) clearOptions;
 @end
 
+#define ServiceDescriptorProto_name @"name"
+#define ServiceDescriptorProto_method @"method"
+#define ServiceDescriptorProto_options @"options"
 @interface PBServiceDescriptorProto : PBGeneratedMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasName_:1;
@@ -861,6 +892,10 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBServiceDescriptorProtoBuilder*) clearOptions;
 @end
 
+#define MethodDescriptorProto_name @"name"
+#define MethodDescriptorProto_input_type @"inputType"
+#define MethodDescriptorProto_output_type @"outputType"
+#define MethodDescriptorProto_options @"options"
 @interface PBMethodDescriptorProto : PBGeneratedMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasName_:1;
@@ -939,6 +974,18 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBMethodDescriptorProtoBuilder*) clearOptions;
 @end
 
+#define FileOptions_java_package @"javaPackage"
+#define FileOptions_java_outer_classname @"javaOuterClassname"
+#define FileOptions_java_multiple_files @"javaMultipleFiles"
+#define FileOptions_java_generate_equals_and_hash @"javaGenerateEqualsAndHash"
+#define FileOptions_java_string_check_utf8 @"javaStringCheckUtf8"
+#define FileOptions_optimize_for @"optimizeFor"
+#define FileOptions_go_package @"goPackage"
+#define FileOptions_cc_generic_services @"ccGenericServices"
+#define FileOptions_java_generic_services @"javaGenericServices"
+#define FileOptions_py_generic_services @"pyGenericServices"
+#define FileOptions_deprecated @"deprecated"
+#define FileOptions_uninterpreted_option @"uninterpretedOption"
 @interface PBFileOptions : PBExtendableMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasJavaMultipleFiles_:1;
@@ -1087,6 +1134,10 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBFileOptionsBuilder *)clearUninterpretedOption;
 @end
 
+#define MessageOptions_message_set_wire_format @"messageSetWireFormat"
+#define MessageOptions_no_standard_descriptor_accessor @"noStandardDescriptorAccessor"
+#define MessageOptions_deprecated @"deprecated"
+#define MessageOptions_uninterpreted_option @"uninterpretedOption"
 @interface PBMessageOptions : PBExtendableMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasMessageSetWireFormat_:1;
@@ -1163,6 +1214,13 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBMessageOptionsBuilder *)clearUninterpretedOption;
 @end
 
+#define FieldOptions_ctype @"ctype"
+#define FieldOptions_packed @"packed"
+#define FieldOptions_lazy @"lazy"
+#define FieldOptions_deprecated @"deprecated"
+#define FieldOptions_experimental_map_key @"experimentalMapKey"
+#define FieldOptions_weak @"weak"
+#define FieldOptions_uninterpreted_option @"uninterpretedOption"
 @interface PBFieldOptions : PBExtendableMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasPacked_:1;
@@ -1266,6 +1324,9 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBFieldOptionsBuilder *)clearUninterpretedOption;
 @end
 
+#define EnumOptions_allow_alias @"allowAlias"
+#define EnumOptions_deprecated @"deprecated"
+#define EnumOptions_uninterpreted_option @"uninterpretedOption"
 @interface PBEnumOptions : PBExtendableMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasAllowAlias_:1;
@@ -1333,6 +1394,8 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBEnumOptionsBuilder *)clearUninterpretedOption;
 @end
 
+#define EnumValueOptions_deprecated @"deprecated"
+#define EnumValueOptions_uninterpreted_option @"uninterpretedOption"
 @interface PBEnumValueOptions : PBExtendableMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasDeprecated_:1;
@@ -1391,6 +1454,8 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBEnumValueOptionsBuilder *)clearUninterpretedOption;
 @end
 
+#define ServiceOptions_deprecated @"deprecated"
+#define ServiceOptions_uninterpreted_option @"uninterpretedOption"
 @interface PBServiceOptions : PBExtendableMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasDeprecated_:1;
@@ -1449,6 +1514,8 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBServiceOptionsBuilder *)clearUninterpretedOption;
 @end
 
+#define MethodOptions_deprecated @"deprecated"
+#define MethodOptions_uninterpreted_option @"uninterpretedOption"
 @interface PBMethodOptions : PBExtendableMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasDeprecated_:1;
@@ -1507,6 +1574,13 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBMethodOptionsBuilder *)clearUninterpretedOption;
 @end
 
+#define UninterpretedOption_name @"name"
+#define UninterpretedOption_identifier_value @"identifierValue"
+#define UninterpretedOption_positive_int_value @"positiveIntValue"
+#define UninterpretedOption_negative_int_value @"negativeIntValue"
+#define UninterpretedOption_double_value @"doubleValue"
+#define UninterpretedOption_string_value @"stringValue"
+#define UninterpretedOption_aggregate_value @"aggregateValue"
 @interface PBUninterpretedOption : PBGeneratedMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasDoubleValue_:1;
@@ -1556,6 +1630,8 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 + (PBUninterpretedOption*) parseFromCodedInputStream:(PBCodedInputStream*) input extensionRegistry:(PBExtensionRegistry*) extensionRegistry;
 @end
 
+#define NamePart_name_part @"namePart"
+#define NamePart_is_extension @"isExtension"
 @interface PBUninterpretedOptionNamePart : PBGeneratedMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasIsExtension_:1;
@@ -1668,6 +1744,7 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 - (PBUninterpretedOptionBuilder*) clearAggregateValue;
 @end
 
+#define SourceCodeInfo_location @"location"
 @interface PBSourceCodeInfo : PBGeneratedMessage<GeneratedMessageProtocol> {
 @private
   NSMutableArray * locationArray;
@@ -1693,6 +1770,10 @@ NSString *NSStringFromPBFieldOptionsCType(PBFieldOptionsCType value);
 + (PBSourceCodeInfo*) parseFromCodedInputStream:(PBCodedInputStream*) input extensionRegistry:(PBExtensionRegistry*) extensionRegistry;
 @end
 
+#define Location_path @"path"
+#define Location_span @"span"
+#define Location_leading_comments @"leadingComments"
+#define Location_trailing_comments @"trailingComments"
 @interface PBSourceCodeInfoLocation : PBGeneratedMessage<GeneratedMessageProtocol> {
 @private
   BOOL hasLeadingComments_:1;

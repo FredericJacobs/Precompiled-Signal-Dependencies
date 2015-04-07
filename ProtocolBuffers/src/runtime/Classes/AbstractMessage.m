@@ -91,5 +91,13 @@
   return output;
 }
 
+- (void) storeInDictionary: (NSMutableDictionary *) dic {
+  @throw [NSException exceptionWithName:@"ImproperSubclassing" reason:@"" userInfo:nil];
+}
+
+- (NSDictionary *) dictionaryRepresentation {
+  @throw [NSException exceptionWithName:@"ImproperSubclassing" reason:@"" userInfo:nil];
+}
+
 
 @end

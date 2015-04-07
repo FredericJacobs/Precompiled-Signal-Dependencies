@@ -98,6 +98,10 @@ static PBUnknownFieldSet* defaultInstance = nil;
   }
 }
 
+- (void) storeInDictionary: (NSMutableDictionary *) dic;
+{
+    //TODO: Ignore unknown field sets for now :D
+}
 
 + (PBUnknownFieldSet*) parseFromCodedInputStream:(PBCodedInputStream*) input {
   return [[[PBUnknownFieldSet builder] mergeFromCodedInputStream:input] build];
