@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "590E2F4133A967A6B1D30AF7"
-               BuildableName = "libPods-SCWaveformView.a"
-               BlueprintName = "Pods-SCWaveformView"
+               BlueprintIdentifier = "CC40B88DE5F69554C024A329"
+               BuildableName = "libPods-EZAudio.a"
+               BlueprintName = "Pods-EZAudio"
                ReferencedContainer = "container:Pods.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>

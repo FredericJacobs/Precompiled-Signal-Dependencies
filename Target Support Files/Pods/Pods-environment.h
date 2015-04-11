@@ -90,6 +90,12 @@
 #define COCOAPODS_VERSION_MINOR_DJWActionSheet 0
 #define COCOAPODS_VERSION_PATCH_DJWActionSheet 4
 
+// EZAudio
+#define COCOAPODS_POD_AVAILABLE_EZAudio
+#define COCOAPODS_VERSION_MAJOR_EZAudio 0
+#define COCOAPODS_VERSION_MINOR_EZAudio 0
+#define COCOAPODS_VERSION_PATCH_EZAudio 6
+
 // FFCircularProgressView
 #define COCOAPODS_POD_AVAILABLE_FFCircularProgressView
 #define COCOAPODS_VERSION_MAJOR_FFCircularProgressView 0
@@ -143,12 +149,6 @@
 #define COCOAPODS_VERSION_MAJOR_ProtocolBuffers 1
 #define COCOAPODS_VERSION_MINOR_ProtocolBuffers 9
 #define COCOAPODS_VERSION_PATCH_ProtocolBuffers 8
-
-// SCWaveformView
-#define COCOAPODS_POD_AVAILABLE_SCWaveformView
-#define COCOAPODS_VERSION_MAJOR_SCWaveformView 1
-#define COCOAPODS_VERSION_MINOR_SCWaveformView 0
-#define COCOAPODS_VERSION_PATCH_SCWaveformView 0
 
 // SQLCipher/common
 #define COCOAPODS_POD_AVAILABLE_SQLCipher_common
