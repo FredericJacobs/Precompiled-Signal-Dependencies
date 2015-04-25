@@ -1,1 +1,0 @@
-PODS_EZAUDIO_OTHER_LDFLAGS = -framework "AVFoundation" -framework "AudioToolbox" -framework "GLKit"
