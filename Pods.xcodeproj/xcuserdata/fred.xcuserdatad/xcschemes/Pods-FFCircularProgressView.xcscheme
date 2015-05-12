@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C473F44FCC4877C9B4FF43E8"
+               BlueprintIdentifier = "E947FA6F1D3320EA2C711E0B"
                BuildableName = "libPods-FFCircularProgressView.a"
                BlueprintName = "Pods-FFCircularProgressView"
                ReferencedContainer = "container:Pods.xcodeproj">

@@ -9,7 +9,7 @@
 // 25519
 #define COCOAPODS_POD_AVAILABLE_25519
 #define COCOAPODS_VERSION_MAJOR_25519 1
-#define COCOAPODS_VERSION_MINOR_25519 8
+#define COCOAPODS_VERSION_MINOR_25519 9
 #define COCOAPODS_VERSION_PATCH_25519 0
 
 // AFNetworking
@@ -64,7 +64,7 @@
 #define COCOAPODS_POD_AVAILABLE_AxolotlKit
 #define COCOAPODS_VERSION_MAJOR_AxolotlKit 0
 #define COCOAPODS_VERSION_MINOR_AxolotlKit 6
-#define COCOAPODS_VERSION_PATCH_AxolotlKit 2
+#define COCOAPODS_VERSION_PATCH_AxolotlKit 3
 
 // CocoaLumberjack
 #define COCOAPODS_POD_AVAILABLE_CocoaLumberjack
@@ -196,13 +196,7 @@
 #define COCOAPODS_POD_AVAILABLE_YapDatabase_SQLCipher
 #define COCOAPODS_VERSION_MAJOR_YapDatabase_SQLCipher 2
 #define COCOAPODS_VERSION_MINOR_YapDatabase_SQLCipher 6
-#define COCOAPODS_VERSION_PATCH_YapDatabase_SQLCipher 1
-
-// YapDatabase/common
-#define COCOAPODS_POD_AVAILABLE_YapDatabase_common
-#define COCOAPODS_VERSION_MAJOR_YapDatabase_common 2
-#define COCOAPODS_VERSION_MINOR_YapDatabase_common 6
-#define COCOAPODS_VERSION_PATCH_YapDatabase_common 1
+#define COCOAPODS_VERSION_PATCH_YapDatabase_SQLCipher 2
 
 // libPhoneNumber-iOS
 #define COCOAPODS_POD_AVAILABLE_libPhoneNumber_iOS

@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "DD3FD915F261014B4B1865CD"
+               BlueprintIdentifier = "98938500E39C4C0341A03394"
                BuildableName = "libPods-SCWaveformView.a"
                BlueprintName = "Pods-SCWaveformView"
                ReferencedContainer = "container:Pods.xcodeproj">

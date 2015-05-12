@@ -27,9 +27,13 @@ NS_INLINE void sqlite_finalize_null(sqlite3_stmt **stmtPtr)
 #define SQLITE_BIND_START 1
 #endif
 
-#ifndef SQLITE_COL_START
-#define SQLITE_COL_START 0
+#ifndef SQLITE_COLUMN_START
+#define SQLITE_COLUMN_START 0
 #endif
+
+/**
+ * Keys for changeset dictionary.
+**/
 
 extern NSString *const YapDatabaseRegisteredExtensionsKey;
 extern NSString *const YapDatabaseRegisteredMemoryTablesKey;
@@ -37,6 +41,14 @@ extern NSString *const YapDatabaseExtensionsOrderKey;
 extern NSString *const YapDatabaseExtensionDependenciesKey;
 extern NSString *const YapDatabaseRemovedRowidsKey;
 extern NSString *const YapDatabaseNotificationKey;
+
+/**
+ * Key(s) for yap2 extension configuration table.
+ *
+ * This is the only key that is reserved, and should not be set by extension subclasses.
+**/
+static NSString *const ext_key_class = @"class";
+
 
 @interface YapDatabase () {
 @public
