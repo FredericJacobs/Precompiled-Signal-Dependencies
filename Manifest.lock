@@ -55,9 +55,11 @@ PODS:
     - UnionFind (~> 1.0)
   - UICKeyChainStore (1.0.7)
   - UnionFind (1.0.1)
-  - YapDatabase/SQLCipher (2.6.2):
+  - YapDatabase/common (2.6.1):
     - CocoaLumberjack (~> 1)
+  - YapDatabase/SQLCipher (2.6.1):
     - SQLCipher/fts
+    - YapDatabase/common
 
 DEPENDENCIES:
   - AFNetworking (~> 2.5.3)
@@ -78,7 +80,7 @@ DEPENDENCIES:
   - SSKeychain
   - TwistedOakCollapsingFutures (~> 1.0)
   - UICKeyChainStore (from `Podspecs/UICKeyChainStore.podspec`)
-  - YapDatabase/SQLCipher
+  - YapDatabase/SQLCipher (= 2.6.1)
 
 EXTERNAL SOURCES:
   APDropDownNavToolbar:
@@ -127,6 +129,6 @@ SPEC CHECKSUMS:
   TwistedOakCollapsingFutures: f359b90f203e9ab13dfb92c9ff41842a7fe1cd0c
   UICKeyChainStore: d4c0f4e313d67b2f23b6614adca55351accac15a
   UnionFind: c33be5adb12983981d6e827ea94fc7f9e370f52d
-  YapDatabase: 2898ddb5dfbef699539a2a673bf900831f4eca8b
+  YapDatabase: 13566c87dc9226a0f15d755edba08e8ad94cac9f
 
 COCOAPODS: 0.36.3

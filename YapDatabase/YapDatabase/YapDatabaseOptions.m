@@ -20,7 +20,6 @@
 #ifdef SQLITE_HAS_CODEC
 @synthesize cipherKeyBlock = cipherKeyBlock;
 #endif
-@synthesize aggressiveWALTruncationSize = aggressiveWALTruncationSize;
 
 - (id)init
 {
@@ -29,22 +28,19 @@
 		corruptAction = YapDatabaseCorruptAction_Rename;
 		pragmaSynchronous = YapDatabasePragmaSynchronous_Full;
 		pragmaJournalSizeLimit = 0;
-		aggressiveWALTruncationSize = (1024 * 1024); // 1 MB
 	}
 	return self;
 }
 
-- (id)copyWithZone:(NSZone __unused *)zone
+- (id)copyWithZone:(NSZone *)zone
 {
 	YapDatabaseOptions *copy = [[[self class] alloc] init];
 	copy->corruptAction = corruptAction;
 	copy->pragmaSynchronous = pragmaSynchronous;
 	copy->pragmaJournalSizeLimit = pragmaJournalSizeLimit;
 #ifdef SQLITE_HAS_CODEC
-    copy->cipherKeyBlock = cipherKeyBlock;
+    copy.cipherKeyBlock = cipherKeyBlock;
 #endif
-	copy->aggressiveWALTruncationSize = aggressiveWALTruncationSize;
-	
 	return copy;
 }
 

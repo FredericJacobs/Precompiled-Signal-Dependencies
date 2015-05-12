@@ -19,7 +19,7 @@
 	return self;
 }
 
-- (id)copyWithZone:(NSZone __unused *)zone
+- (id)copyWithZone:(NSZone *)zone
 {
 	YapDatabaseRelationshipOptions *copy = [[YapDatabaseRelationshipOptions alloc] init];
 	copy->disableYapDatabaseRelationshipNodeProtocol = disableYapDatabaseRelationshipNodeProtocol;

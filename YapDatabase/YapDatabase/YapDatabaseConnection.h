@@ -75,7 +75,6 @@ typedef NS_OPTIONS(NSUInteger, YapDatabaseConnectionFlushMemoryFlags) {
 
 
 @interface YapDatabaseConnection : NSObject
-NS_ASSUME_NONNULL_BEGIN
 
 /**
  * A database connection maintains a strong reference to its parent.
@@ -326,7 +325,7 @@ NS_ASSUME_NONNULL_BEGIN
  * The completionBlock will be invoked on the main thread (dispatch_get_main_queue()).
 **/
 - (void)asyncReadWithBlock:(void (^)(YapDatabaseReadTransaction *transaction))block
-           completionBlock:(nullable dispatch_block_t)completionBlock;
+           completionBlock:(dispatch_block_t)completionBlock;
 
 /**
  * Read-only access to the database.
@@ -341,8 +340,8 @@ NS_ASSUME_NONNULL_BEGIN
  * If NULL, dispatch_get_main_queue() is automatically used.
 **/
 - (void)asyncReadWithBlock:(void (^)(YapDatabaseReadTransaction *transaction))block
-           completionQueue:(nullable dispatch_queue_t)completionQueue
-           completionBlock:(nullable dispatch_block_t)completionBlock;
+           completionQueue:(dispatch_queue_t)completionQueue
+           completionBlock:(dispatch_block_t)completionBlock;
 
 /**
  * DEPRECATED in v2.5
@@ -397,7 +396,7 @@ __attribute((deprecated("Use method asyncReadWithBlock:completionQueue:completio
  * The completionBlock will be invoked on the main thread (dispatch_get_main_queue()).
 **/
 - (void)asyncReadWriteWithBlock:(void (^)(YapDatabaseReadWriteTransaction *transaction))block
-                completionBlock:(nullable dispatch_block_t)completionBlock;
+                completionBlock:(dispatch_block_t)completionBlock;
 
 /**
  * Read-write access to the database.
@@ -413,8 +412,8 @@ __attribute((deprecated("Use method asyncReadWithBlock:completionQueue:completio
  * If NULL, dispatch_get_main_queue() is automatically used.
 **/
 - (void)asyncReadWriteWithBlock:(void (^)(YapDatabaseReadWriteTransaction *transaction))block
-                completionQueue:(nullable dispatch_queue_t)completionQueue
-                completionBlock:(nullable dispatch_block_t)completionBlock;
+                completionQueue:(dispatch_queue_t)completionQueue
+                completionBlock:(dispatch_block_t)completionBlock;
 
 /**
  * DEPRECATED in v2.5
@@ -713,7 +712,7 @@ __attribute((deprecated("Use method asyncReadWriteWithBlock:completionQueue:comp
  * 
  * @see pragmaAutoVacuum
 **/
-- (void)asyncVacuumWithCompletionBlock:(nullable dispatch_block_t)completionBlock;
+- (void)asyncVacuumWithCompletionBlock:(dispatch_block_t)completionBlock;
 
 /**
  * Performs a VACUUM on the sqlite database.
@@ -732,8 +731,7 @@ __attribute((deprecated("Use method asyncReadWriteWithBlock:completionQueue:comp
  * 
  * @see pragmaAutoVacuum
 **/
-- (void)asyncVacuumWithCompletionQueue:(nullable dispatch_queue_t)completionQueue
-                       completionBlock:(nullable dispatch_block_t)completionBlock;
+- (void)asyncVacuumWithCompletionQueue:(dispatch_queue_t)completionQueue
+                       completionBlock:(dispatch_block_t)completionBlock;
 
-NS_ASSUME_NONNULL_END
 @end

@@ -19,9 +19,9 @@
   static const int ydbLogLevel = YDB_LOG_LEVEL_WARN;
 #endif
 
-static NSString *const ext_key__classVersion       = @"classVersion";
-static NSString *const ext_key__versionTag         = @"versionTag";
-static NSString *const ext_key__version_deprecated = @"version";
+static NSString *const ExtKey_classVersion       = @"classVersion";
+static NSString *const ExtKey_versionTag         = @"versionTag";
+static NSString *const ExtKey_version_deprecated = @"version";
 
 
 @implementation YapDatabaseFullTextSearchTransaction
@@ -50,7 +50,7 @@ static NSString *const ext_key__version_deprecated = @"version";
 - (BOOL)createIfNeeded
 {
 	int oldClassVersion = 0;
-	BOOL hasOldClassVersion = [self getIntValue:&oldClassVersion forExtensionKey:ext_key__classVersion persistent:YES];
+	BOOL hasOldClassVersion = [self getIntValue:&oldClassVersion forExtensionKey:ExtKey_classVersion persistent:YES];
 	int classVersion = YAP_DATABASE_FTS_CLASS_VERSION;
 	
 	if (oldClassVersion != classVersion)
@@ -64,10 +64,10 @@ static NSString *const ext_key__version_deprecated = @"version";
 		if (![self createTable]) return NO;
 		if (![self populate]) return NO;
 		
-		[self setIntValue:classVersion forExtensionKey:ext_key__classVersion persistent:YES];
+		[self setIntValue:classVersion forExtensionKey:ExtKey_classVersion persistent:YES];
 		
 		NSString *versionTag = ftsConnection->fts->versionTag;
-		[self setStringValue:versionTag forExtensionKey:ext_key__versionTag persistent:YES];
+		[self setStringValue:versionTag forExtensionKey:ExtKey_versionTag persistent:YES];
 	}
 	else
 	{
@@ -76,14 +76,14 @@ static NSString *const ext_key__version_deprecated = @"version";
 		
 		NSString *versionTag = ftsConnection->fts->versionTag;
 		
-		NSString *oldVersionTag = [self stringValueForExtensionKey:ext_key__versionTag persistent:YES];
+		NSString *oldVersionTag = [self stringValueForExtensionKey:ExtKey_versionTag persistent:YES];
 		
 		BOOL hasOldVersion_deprecated = NO;
 		if (oldVersionTag == nil)
 		{
 			int oldVersion_deprecated = 0;
 			hasOldVersion_deprecated = [self getIntValue:&oldVersion_deprecated
-			                             forExtensionKey:ext_key__version_deprecated
+			                             forExtensionKey:ExtKey_version_deprecated
 			                                  persistent:YES];
 			
 			if (hasOldVersion_deprecated)
@@ -98,15 +98,15 @@ static NSString *const ext_key__version_deprecated = @"version";
 			if (![self createTable]) return NO;
 			if (![self populate]) return NO;
 			
-			[self setStringValue:versionTag forExtensionKey:ext_key__versionTag persistent:YES];
+			[self setStringValue:versionTag forExtensionKey:ExtKey_versionTag persistent:YES];
 			
 			if (hasOldVersion_deprecated)
-				[self removeValueForExtensionKey:ext_key__version_deprecated persistent:YES];
+				[self removeValueForExtensionKey:ExtKey_version_deprecated persistent:YES];
 		}
 		else if (hasOldVersion_deprecated)
 		{
-			[self removeValueForExtensionKey:ext_key__version_deprecated persistent:YES];
-			[self setStringValue:versionTag forExtensionKey:ext_key__versionTag persistent:YES];
+			[self removeValueForExtensionKey:ExtKey_version_deprecated persistent:YES];
+			[self setStringValue:versionTag forExtensionKey:ExtKey_versionTag persistent:YES];
 		}
 	}
 	
@@ -184,7 +184,7 @@ static NSString *const ext_key__version_deprecated = @"version";
 	}
 	
 	NSDictionary *options = ftsConnection->fts->options;
-	[options enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL __unused *stop) {
+	[options enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
 		
 		NSString *option = (NSString *)key;
 		NSString *value = (NSString *)obj;
@@ -238,7 +238,7 @@ static NSString *const ext_key__version_deprecated = @"version";
 		    (YapDatabaseFullTextSearchWithRowBlock)fts->block;
 		
 		[databaseTransaction _enumerateRowsInAllCollectionsUsingBlock:
-		    ^(int64_t rowid, NSString *collection, NSString *key, id object, id metadata, BOOL __unused *stop) {
+		    ^(int64_t rowid, NSString *collection, NSString *key, id object, id metadata, BOOL *stop) {
 			
 			block(ftsConnection->blockDict, collection, key, object, metadata);
 			
@@ -255,7 +255,7 @@ static NSString *const ext_key__version_deprecated = @"version";
 		    (YapDatabaseFullTextSearchWithObjectBlock)fts->block;
 		
 		[databaseTransaction _enumerateKeysAndObjectsInAllCollectionsUsingBlock:
-		    ^(int64_t rowid, NSString *collection, NSString *key, id object, BOOL __unused *stop) {
+		    ^(int64_t rowid, NSString *collection, NSString *key, id object, BOOL *stop) {
 			
 			block(ftsConnection->blockDict, collection, key, object);
 			
@@ -272,7 +272,7 @@ static NSString *const ext_key__version_deprecated = @"version";
 		    (YapDatabaseFullTextSearchWithMetadataBlock)fts->block;
 		
 		[databaseTransaction _enumerateKeysAndMetadataInAllCollectionsUsingBlock:
-		    ^(int64_t rowid, NSString *collection, NSString *key, id metadata, BOOL __unused *stop) {
+		    ^(int64_t rowid, NSString *collection, NSString *key, id metadata, BOOL *stop) {
 			
 			block(ftsConnection->blockDict, collection, key, metadata);
 			
@@ -289,7 +289,7 @@ static NSString *const ext_key__version_deprecated = @"version";
 		    (YapDatabaseFullTextSearchWithKeyBlock)fts->block;
 		
 		[databaseTransaction _enumerateKeysInAllCollectionsUsingBlock:
-		    ^(int64_t rowid, NSString *collection, NSString *key, BOOL __unused *stop) {
+		    ^(int64_t rowid, NSString *collection, NSString *key, BOOL *stop) {
 			
 			block(ftsConnection->blockDict, collection, key);
 			
@@ -354,9 +354,9 @@ static NSString *const ext_key__version_deprecated = @"version";
 	//  isNew : INSERT INTO "tableName" ("rowid", "column1", "column2", ...) VALUES (?, ?, ? ...)
 	// !isNew : INSERT OR REPLACE INTO "tableName" ("rowid", "column1", "column2", ...) VALUES (?, ?, ? ...)
 	
-	sqlite3_bind_int64(statement, SQLITE_BIND_START, rowid);
+	sqlite3_bind_int64(statement, 1, rowid);
 	
-	int i = SQLITE_BIND_START + 1;
+	int i = 2;
 	for (NSString *columnName in ftsConnection->fts->columnNames)
 	{
 		NSString *columnValue = [ftsConnection->blockDict objectForKey:columnName];
@@ -391,9 +391,7 @@ static NSString *const ext_key__version_deprecated = @"version";
 	
 	// DELETE FROM "tableName" WHERE "rowid" = ?;
 	
-	int const bind_idx_rowid = SQLITE_BIND_START;
-	
-	sqlite3_bind_int64(statement, bind_idx_rowid, rowid);
+	sqlite3_bind_int64(statement, 1, rowid);
 	
 	int status = sqlite3_step(statement);
 	if (status != SQLITE_DONE)
@@ -458,7 +456,7 @@ static NSString *const ext_key__version_deprecated = @"version";
 	{
 		int64_t rowid = [[rowids objectAtIndex:i] longLongValue];
 		
-		sqlite3_bind_int64(statement, (int)(SQLITE_BIND_START + i), rowid);
+		sqlite3_bind_int64(statement, (int)(i + 1), rowid);
 	}
 	
 	status = sqlite3_step(statement);
@@ -793,7 +791,7 @@ static NSString *const ext_key__version_deprecated = @"version";
  * YapDatabase extension hook.
  * This method is invoked by a YapDatabaseReadWriteTransaction as a post-operation-hook.
 **/
-- (void)handleTouchObjectForCollectionKey:(YapCollectionKey __unused *)collectionKey withRowid:(int64_t __unused)rowid
+- (void)handleTouchObjectForCollectionKey:(YapCollectionKey *)collectionKey withRowid:(int64_t)rowid
 {
 	// Nothing to do for this extension
 }
@@ -802,7 +800,7 @@ static NSString *const ext_key__version_deprecated = @"version";
  * YapDatabase extension hook.
  * This method is invoked by a YapDatabaseReadWriteTransaction as a post-operation-hook.
 **/
-- (void)handleTouchMetadataForCollectionKey:(YapCollectionKey __unused *)collectionKey withRowid:(int64_t __unused)rowid
+- (void)handleTouchMetadataForCollectionKey:(YapCollectionKey *)collectionKey withRowid:(int64_t)rowid
 {
 	// Nothing to do for this extension
 }
@@ -811,7 +809,7 @@ static NSString *const ext_key__version_deprecated = @"version";
  * YapDatabase extension hook.
  * This method is invoked by a YapDatabaseReadWriteTransaction as a post-operation-hook.
 **/
-- (void)handleRemoveObjectForCollectionKey:(YapCollectionKey __unused *)collectionKey withRowid:(int64_t)rowid
+- (void)handleRemoveObjectForCollectionKey:(YapCollectionKey *)collectionKey withRowid:(int64_t)rowid
 {
 	YDBLogAutoTrace();
 	
@@ -822,7 +820,7 @@ static NSString *const ext_key__version_deprecated = @"version";
  * YapDatabase extension hook.
  * This method is invoked by a YapDatabaseReadWriteTransaction as a post-operation-hook.
 **/
-- (void)handleRemoveObjectsForKeys:(NSArray __unused *)keys inCollection:(NSString __unused *)collection withRowids:(NSArray *)rowids
+- (void)handleRemoveObjectsForKeys:(NSArray *)keys inCollection:(NSString *)collection withRowids:(NSArray *)rowids
 {
 	YDBLogAutoTrace();
 	
@@ -858,18 +856,15 @@ static NSString *const ext_key__version_deprecated = @"version";
 	
 	// SELECT "rowid" FROM "tableName" WHERE "tableName" MATCH ?;
 	
-	int const column_idx_rowid = SQLITE_COLUMN_START;
-	int const bind_idx_query   = SQLITE_BIND_START;
-	
 	YapDatabaseString _query; MakeYapDatabaseString(&_query, query);
-	sqlite3_bind_text(statement, bind_idx_query, _query.str, _query.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, 1, _query.str, _query.length, SQLITE_STATIC);
 	
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
 		do
 		{
-			int64_t rowid = sqlite3_column_int64(statement, column_idx_rowid);
+			int64_t rowid = sqlite3_column_int64(statement, 0);
 			
 			block(rowid, &stop);
 			
@@ -971,24 +966,14 @@ static NSString *const ext_key__version_deprecated = @"version";
 	
 	// SELECT "rowid", snippet("tableName", ?, ?, ?, ?, ?) FROM "tableName" WHERE "tableName" MATCH ?;
 	
-	int const column_idx_rowid        = SQLITE_COLUMN_START + 0;
-	int const column_idx_snippet      = SQLITE_COLUMN_START + 1;
-	
-	int const bind_idx_startMatchText = SQLITE_BIND_START + 0;
-	int const bind_idx_endMatchText   = SQLITE_BIND_START + 1;
-	int const bind_idx_ellipsesText   = SQLITE_BIND_START + 2;
-	int const bind_idx_columnIndex    = SQLITE_BIND_START + 3;
-	int const bind_idx_numTokens      = SQLITE_BIND_START + 4;
-	int const bind_idx_query          = SQLITE_BIND_START + 5;
-	
 	YapDatabaseString _startMatchText; MakeYapDatabaseString(&_startMatchText, options.startMatchText);
-	sqlite3_bind_text(statement, bind_idx_startMatchText, _startMatchText.str, _startMatchText.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, 1, _startMatchText.str, _startMatchText.length, SQLITE_STATIC);
 	
 	YapDatabaseString _endMatchText; MakeYapDatabaseString(&_endMatchText, options.endMatchText);
-	sqlite3_bind_text(statement, bind_idx_endMatchText, _endMatchText.str, _endMatchText.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, 2, _endMatchText.str, _endMatchText.length, SQLITE_STATIC);
 	
 	YapDatabaseString _ellipsesText; MakeYapDatabaseString(&_ellipsesText, options.ellipsesText);
-	sqlite3_bind_text(statement, bind_idx_ellipsesText, _ellipsesText.str, _ellipsesText.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, 3, _ellipsesText.str, _ellipsesText.length, SQLITE_STATIC);
 
 	int columnIndex = -1;
 	if (options.columnName)
@@ -1003,21 +988,21 @@ static NSString *const ext_key__version_deprecated = @"version";
 			columnIndex = (int)index;
 		}
 	}
-	sqlite3_bind_int(statement, bind_idx_columnIndex, columnIndex);
-	sqlite3_bind_int(statement, bind_idx_numTokens, options.numberOfTokens);
+	sqlite3_bind_int(statement, 4, columnIndex);
+	sqlite3_bind_int(statement, 5, options.numberOfTokens);
 	
 	YapDatabaseString _query; MakeYapDatabaseString(&_query, query);
-	sqlite3_bind_text(statement, bind_idx_query, _query.str, _query.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, 6, _query.str, _query.length, SQLITE_STATIC);
 	
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
 		do
 		{
-			int64_t rowid = sqlite3_column_int64(statement, column_idx_rowid);
+			int64_t rowid = sqlite3_column_int64(statement, 0);
 			
-			const unsigned char *text = sqlite3_column_text(statement, column_idx_snippet);
-			int textSize = sqlite3_column_bytes(statement, column_idx_snippet);
+			const unsigned char *text = sqlite3_column_text(statement, 1);
+			int textSize = sqlite3_column_bytes(statement, 1);
 			
 			NSString *snippet = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 			
@@ -1128,13 +1113,10 @@ static NSString *const ext_key__version_deprecated = @"version";
 	
 	// SELECT "rowid" FROM "tableName" WHERE "rowid" = ? AND "tableName" MATCH ?;
 	
-	int const bind_idx_rowid = SQLITE_BIND_START + 0;
-	int const bind_idx_query = SQLITE_BIND_START + 1;
-	
-	sqlite3_bind_int64(statement, bind_idx_rowid, rowid);
+	sqlite3_bind_int64(statement, 1, rowid);
 	
 	YapDatabaseString _query; MakeYapDatabaseString(&_query, query);
-	sqlite3_bind_text(statement, bind_idx_query, _query.str, _query.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, 2, _query.str, _query.length, SQLITE_STATIC);
 	
 	BOOL result = NO;
 	
@@ -1172,25 +1154,14 @@ static NSString *const ext_key__version_deprecated = @"version";
 	
 	// SELECT "rowid", snippet("tableName", ?, ?, ?, ?, ?) FROM "tableName" WHERE "rowid" = ? AND "tableName" MATCH ?;
 	
-//	int const column_idx_rowid        = SQLITE_COLUMN_START + 0;
-	int const column_idx_snippet      = SQLITE_COLUMN_START + 1;
-	
-	int const bind_idx_startMatchText = SQLITE_BIND_START + 0;
-	int const bind_idx_endMatchText   = SQLITE_BIND_START + 1;
-	int const bind_idx_ellipsesText   = SQLITE_BIND_START + 2;
-	int const bind_idx_columnIndex    = SQLITE_BIND_START + 3;
-	int const bind_idx_numTokens      = SQLITE_BIND_START + 4;
-	int const bind_idx_rowid          = SQLITE_BIND_START + 5;
-	int const bind_idx_query          = SQLITE_BIND_START + 6;
-	
 	YapDatabaseString _startMatchText; MakeYapDatabaseString(&_startMatchText, options.startMatchText);
-	sqlite3_bind_text(statement, bind_idx_startMatchText, _startMatchText.str, _startMatchText.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, 1, _startMatchText.str, _startMatchText.length, SQLITE_STATIC);
 	
 	YapDatabaseString _endMatchText; MakeYapDatabaseString(&_endMatchText, options.endMatchText);
-	sqlite3_bind_text(statement, bind_idx_endMatchText, _endMatchText.str, _endMatchText.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, 2, _endMatchText.str, _endMatchText.length, SQLITE_STATIC);
 	
 	YapDatabaseString _ellipsesText; MakeYapDatabaseString(&_ellipsesText, options.ellipsesText);
-	sqlite3_bind_text(statement, bind_idx_ellipsesText, _ellipsesText.str, _ellipsesText.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, 3, _ellipsesText.str, _ellipsesText.length, SQLITE_STATIC);
 
 	int columnIndex = -1;
 	if (options.columnName)
@@ -1205,23 +1176,26 @@ static NSString *const ext_key__version_deprecated = @"version";
 			columnIndex = (int)index;
 		}
 	}
-	sqlite3_bind_int(statement, bind_idx_columnIndex, columnIndex);
-	sqlite3_bind_int(statement, bind_idx_numTokens, options.numberOfTokens);
+	sqlite3_bind_int(statement, 4, columnIndex);
+	sqlite3_bind_int(statement, 5, options.numberOfTokens);
 	
-	sqlite3_bind_int64(statement, bind_idx_rowid, rowid);
+	sqlite3_bind_int64(statement, 6, rowid);
 	
 	YapDatabaseString _query; MakeYapDatabaseString(&_query, query);
-	sqlite3_bind_text(statement, bind_idx_query, _query.str, _query.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, 7, _query.str, _query.length, SQLITE_STATIC);
+	
+	sqlite3_clear_bindings(statement);
+	sqlite3_reset(statement);
 	
 	NSString *snippet = nil;
 	
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
-	//	int64_t rowid = sqlite3_column_int64(statement, column_idx_rowid);
+	//	int64_t rowid = sqlite3_column_int64(statement, 0);
 			
-		const unsigned char *text = sqlite3_column_text(statement, column_idx_snippet);
-		int textSize = sqlite3_column_bytes(statement, column_idx_snippet);
+		const unsigned char *text = sqlite3_column_text(statement, 1);
+		int textSize = sqlite3_column_bytes(statement, 1);
 		
 		snippet = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 	}
@@ -1231,8 +1205,6 @@ static NSString *const ext_key__version_deprecated = @"version";
 		            status, sqlite3_errmsg(databaseTransaction->connection->db));
 	}
 	
-	sqlite3_clear_bindings(statement);
-	sqlite3_reset(statement);
 	FreeYapDatabaseString(&_startMatchText);
 	FreeYapDatabaseString(&_endMatchText);
 	FreeYapDatabaseString(&_ellipsesText);

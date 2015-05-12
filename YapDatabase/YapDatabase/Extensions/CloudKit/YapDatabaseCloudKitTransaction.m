@@ -21,16 +21,9 @@
 #endif
 #pragma unused(ydbLogLevel)
 
-/**
- * Keys for yap2 extension configuration table.
-**/
-static NSString *const ext_key_classVersion = @"classVersion";
-static NSString *const ext_key_versionTag   = @"versionTag";
+static NSString *const ExtKey_classVersion = @"classVersion";
+static NSString *const ExtKey_versionTag   = @"versionTag";
 
-/**
- * Flags for the processRecord: method,
- * which handles the logic for processing records returned by the recordHandlerBlock.
-**/
 typedef NS_OPTIONS(NSUInteger, YDBCKProcessRecordBitMask) {
 	YDBCK_skipUploadRecord   = 1 << 0,
 	YDBCK_skipUploadDeletion = 1 << 1,
@@ -38,10 +31,8 @@ typedef NS_OPTIONS(NSUInteger, YDBCKProcessRecordBitMask) {
 	YDBCK_remoteMerge        = 1 << 3,
 };
 
-
-@implementation YapDatabaseCloudKitTransaction {
-@private
-	
+@implementation YapDatabaseCloudKitTransaction
+{
 	NSSet *rowidsInMidMerge;
 }
 
@@ -100,9 +91,9 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 	// - hasOldClassVersion - will be YES if the extension exists from a previous run of the app
 	
 	int oldClassVersion = 0;
-	BOOL hasOldClassVersion = [self getIntValue:&oldClassVersion forExtensionKey:ext_key_classVersion persistent:YES];
+	BOOL hasOldClassVersion = [self getIntValue:&oldClassVersion forExtensionKey:ExtKey_classVersion persistent:YES];
 	
-	NSString *oldVersionTag = [self stringValueForExtensionKey:ext_key_versionTag persistent:YES];
+	NSString *oldVersionTag = [self stringValueForExtensionKey:ExtKey_versionTag persistent:YES];
 	
 	if (!hasOldClassVersion)
 	{
@@ -112,8 +103,8 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 		if (![self createNewMasterChangeQueue]) return NO;
 		if (![self populateTables]) return NO;
 		
-		[self setIntValue:classVersion forExtensionKey:ext_key_classVersion persistent:YES];
-		[self setStringValue:versionTag forExtensionKey:ext_key_versionTag persistent:YES];
+		[self setIntValue:classVersion forExtensionKey:ExtKey_classVersion persistent:YES];
+		[self setStringValue:versionTag forExtensionKey:ExtKey_versionTag persistent:YES];
 	}
 	else if (!ClassVersionsAreCompatible(oldClassVersion, classVersion))
 	{
@@ -136,7 +127,7 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 		if (![self restoreMasterChangeQueue]) return NO;
 		if (![self repopulateTables]) return NO;
 		
-		[self setStringValue:versionTag forExtensionKey:ext_key_versionTag persistent:YES];
+		[self setStringValue:versionTag forExtensionKey:ExtKey_versionTag persistent:YES];
 	}
 	else
 	{
@@ -294,11 +285,11 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 	  @"SELECT \"uuid\", \"prev\", \"databaseIdentifier\", \"deletedRecordIDs\", \"modifiedRecords\" FROM \"%@\";",
 	  [self queueTableName]];
 	
-	int const column_idx_uuid             = SQLITE_COLUMN_START + 0;
-	int const column_idx_prev             = SQLITE_COLUMN_START + 1;
-	int const column_idx_dbid             = SQLITE_COLUMN_START + 2;
-	int const column_idx_deletedRecordIDs = SQLITE_COLUMN_START + 3;
-	int const column_idx_modifiedRecords  = SQLITE_COLUMN_START + 4;
+	int col_uuid             = SQLITE_COL_START + 0;
+	int col_prev             = SQLITE_COL_START + 1;
+	int col_dbid             = SQLITE_COL_START + 2;
+	int col_deletedRecordIDs = SQLITE_COL_START + 3;
+	int col_modifiedRecords  = SQLITE_COL_START + 4;
 	
 	status = sqlite3_prepare_v2(db, [enumerate UTF8String], -1, &statement, NULL);
 	if (status != SQLITE_OK)
@@ -316,45 +307,45 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 		NSData *blob1 = nil;
 		NSData *blob2 = nil;
 		
-		const unsigned char *_uuid = sqlite3_column_text(statement, column_idx_uuid);
-		int _uuidLen = sqlite3_column_bytes(statement, column_idx_uuid);
+		const unsigned char *_uuid = sqlite3_column_text(statement, col_uuid);
+		int _uuidLen = sqlite3_column_bytes(statement, col_uuid);
 		
 		uuid = [[NSString alloc] initWithBytes:_uuid length:_uuidLen encoding:NSUTF8StringEncoding];
 		
 		int column_type;
 		
-		column_type = sqlite3_column_type(statement, column_idx_prev);
+		column_type = sqlite3_column_type(statement, col_prev);
 		if (column_type != SQLITE_NULL)
 		{
-			const unsigned char *_prev = sqlite3_column_text(statement, column_idx_prev);
-			int _prevLen = sqlite3_column_bytes(statement, column_idx_prev);
+			const unsigned char *_prev = sqlite3_column_text(statement, col_prev);
+			int _prevLen = sqlite3_column_bytes(statement, col_prev);
 			
 			prev = [[NSString alloc] initWithBytes:_prev length:_prevLen encoding:NSUTF8StringEncoding];
 		}
 		
-		column_type = sqlite3_column_type(statement, column_idx_dbid);
+		column_type = sqlite3_column_type(statement, col_dbid);
 		if (column_type != SQLITE_NULL)
 		{
-			const unsigned char *_dbid = sqlite3_column_text(statement, column_idx_dbid);
-			int _dbidLen = sqlite3_column_bytes(statement, column_idx_dbid);
+			const unsigned char *_dbid = sqlite3_column_text(statement, col_dbid);
+			int _dbidLen = sqlite3_column_bytes(statement, col_dbid);
 			
 			dbid = [[NSString alloc] initWithBytes:_dbid length:_dbidLen encoding:NSUTF8StringEncoding];
 		}
 		
-		column_type = sqlite3_column_type(statement, column_idx_deletedRecordIDs);
+		column_type = sqlite3_column_type(statement, col_deletedRecordIDs);
 		if (column_type != SQLITE_NULL)
 		{
-			const void *_blob1 = sqlite3_column_blob(statement, column_idx_deletedRecordIDs);
-			int _blob1Len = sqlite3_column_bytes(statement, column_idx_deletedRecordIDs);
+			const void *_blob1 = sqlite3_column_blob(statement, col_deletedRecordIDs);
+			int _blob1Len = sqlite3_column_bytes(statement, col_deletedRecordIDs);
 			
 			blob1 = [NSData dataWithBytesNoCopy:(void *)_blob1 length:_blob1Len freeWhenDone:NO];
 		}
 		
-		column_type = sqlite3_column_type(statement, column_idx_modifiedRecords);
+		column_type = sqlite3_column_type(statement, col_modifiedRecords);
 		if (column_type != SQLITE_NULL)
 		{
-			const void *_blob2 = sqlite3_column_blob(statement, column_idx_modifiedRecords);
-			int _blob2Len = sqlite3_column_bytes(statement, column_idx_modifiedRecords);
+			const void *_blob2 = sqlite3_column_blob(statement, col_modifiedRecords);
+			int _blob2Len = sqlite3_column_bytes(statement, col_modifiedRecords);
 			
 			blob2 = [NSData dataWithBytesNoCopy:(void *)_blob2 length:_blob2Len freeWhenDone:NO];
 		}
@@ -1181,7 +1172,7 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 		}
 	}
 	
-	if (recordTableHashChangedForRowid && prevRecordTableHash)
+	if (recordTableHashChangedForRowid && prevRecordTableInfo)
 	{
 		// Rowid is no longer associated with record.
 		// Need to decrement ownerCount.
@@ -1363,20 +1354,20 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 	
 	// SELECT "recordTable_hash" FROM "mappingTableName" WHERE "rowid" = ?;
 	
-	int const column_idx_recordTable_hash = SQLITE_COLUMN_START;
-	int const bind_idx_rowid              = SQLITE_BIND_START;
+	int col_recordTable_hash = SQLITE_COL_START + 0;
+	int bind_rowid = SQLITE_BIND_START + 0;
 	
-	sqlite3_bind_int64(statement, bind_idx_rowid, rowid);
+	sqlite3_bind_int64(statement, bind_rowid, rowid);
 	
 	NSString *recordTable_hash = nil;
 	
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
-		int textSize = sqlite3_column_bytes(statement, column_idx_recordTable_hash);
+		int textSize = sqlite3_column_bytes(statement, col_recordTable_hash);
 		if (textSize > 0)
 		{
-			const unsigned char *text = sqlite3_column_text(statement, column_idx_recordTable_hash);
+			const unsigned char *text = sqlite3_column_text(statement, col_recordTable_hash);
 			
 			recordTable_hash = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 		}
@@ -1486,8 +1477,8 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 		[query appendString:@"SELECT \"rowid\", \"recordTable_hash\""];
 		[query appendFormat:@" FROM \"%@\" WHERE \"rowid\" IN (", [self mappingTableName]];
 		
-		int const column_idx_rowid            = SQLITE_COLUMN_START + 0;
-		int const column_idx_recordTable_hash = SQLITE_COLUMN_START + 1;
+		int col_rowid            = SQLITE_COL_START + 0;
+		int col_recordTable_hash = SQLITE_COL_START + 1;
 		
 		for (NSUInteger i = 0; i < count; i++)
 		{
@@ -1525,10 +1516,10 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 			int64_t rowid = 0;
 			NSString *recordTable_hash = nil;
 			
-			rowid = sqlite3_column_int64(statement, column_idx_rowid);
+			rowid = sqlite3_column_int64(statement, col_rowid);
 			
-			int textLen = sqlite3_column_bytes(statement, column_idx_recordTable_hash);
-			const unsigned char *text = sqlite3_column_text(statement, column_idx_recordTable_hash);
+			int textLen = sqlite3_column_bytes(statement, col_recordTable_hash);
+			const unsigned char *text = sqlite3_column_text(statement, col_recordTable_hash);
 			
 			recordTable_hash = [[NSString alloc] initWithBytes:text length:textLen encoding:NSUTF8StringEncoding];
 			
@@ -1568,13 +1559,13 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 		
 		// INSERT OR REPLACE INTO "mappingTableName" ("rowid", "recordTable_hash") VALUES (?, ?);
 		
-		int const bind_idx_rowid            = SQLITE_BIND_START + 0;
-		int const bind_idx_recordTable_hash = SQLITE_BIND_START + 1;
+		int bind_rowid            = SQLITE_BIND_START + 0;
+		int bind_recordTable_hash = SQLITE_BIND_START + 1;
 		
-		sqlite3_bind_int64(statement, bind_idx_rowid, rowid);
+		sqlite3_bind_int64(statement, bind_rowid, rowid);
 		
 		YapDatabaseString _hash; MakeYapDatabaseString(&_hash, dirtyMappingTableInfo.dirty_recordTable_hash);
-		sqlite3_bind_text(statement, bind_idx_recordTable_hash, _hash.str, _hash.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_recordTable_hash, _hash.str, _hash.length, SQLITE_STATIC);
 		
 		YDBLogVerbose(@"Inserting 1 row in mapping table with rowid(%lld)...", rowid);
 		
@@ -1603,13 +1594,13 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 		
 		// UPDATE "mappingTableName" SET "recordTable_hash" = ? WHERE "rowid" = ?;
 		
-		int const bind_idx_recordTable_hash = SQLITE_BIND_START + 0;
-		int const bind_idx_rowid            = SQLITE_BIND_START + 1;
+		int bind_recordTable_hash = SQLITE_BIND_START + 0;
+		int bind_rowid            = SQLITE_BIND_START + 1;
 		
 		YapDatabaseString _hash; MakeYapDatabaseString(&_hash, dirtyMappingTableInfo.dirty_recordTable_hash);
-		sqlite3_bind_text(statement, bind_idx_recordTable_hash, _hash.str, _hash.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_recordTable_hash, _hash.str, _hash.length, SQLITE_STATIC);
 		
-		sqlite3_bind_int64(statement, bind_idx_rowid, rowid);
+		sqlite3_bind_int64(statement, bind_rowid, rowid);
 		
 		YDBLogVerbose(@"Updating 1 row in mapping table with rowid(%lld)...", rowid);
 		
@@ -1635,9 +1626,9 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 	
 	// DELETE FROM "mappingTableName" WHERE "rowid" = ?;
 	
-	int const bind_idx_rowid = SQLITE_BIND_START;
+	int bind_rowid = SQLITE_BIND_START + 0;
 	
-	sqlite3_bind_int64(statement, bind_idx_rowid, rowid);
+	sqlite3_bind_int64(statement, bind_rowid, rowid);
 	
 	YDBLogVerbose(@"Deleting 1 row from mapping table with rowid(%lld)...", rowid);
 	
@@ -1690,16 +1681,16 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 	
 	// SELECT "rowid" FROM "mappingTableName" WHERE "recordTable_hash" = ?;
 	
-	int const column_idx_rowid = SQLITE_COLUMN_START;
-	int const bind_idx_hash    = SQLITE_BIND_START;
+	int col_rowid = SQLITE_COL_START + 0;
+	int bind_hash = SQLITE_BIND_START + 0;
 	
 	YapDatabaseString _hash; MakeYapDatabaseString(&_hash, hash);
-	sqlite3_bind_text(statement, bind_idx_hash, _hash.str, _hash.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_hash, _hash.str, _hash.length, SQLITE_STATIC);
 	
 	int status;
 	while ((status = sqlite3_step(statement)) == SQLITE_ROW)
 	{
-		int64_t rowid = sqlite3_column_int64(statement, column_idx_rowid);
+		int64_t rowid = sqlite3_column_int64(statement, col_rowid);
 		
 		if (rowids == nil) {
 			rowids = [NSMutableSet setWithCapacity:1];
@@ -1793,13 +1784,14 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 	
 	// SELECT "databaseIdentifier", "ownerCount", "record" FROM "recordTableName" WHERE "hash" = ?;
 	
-	int const column_idx_databaseIdentifier = SQLITE_COLUMN_START + 0;
-	int const column_idx_ownerCount         = SQLITE_COLUMN_START + 1;
-	int const column_idx_record             = SQLITE_COLUMN_START + 2;
-	int const bind_idx_hash                 = SQLITE_BIND_START;
+	int col_databaseIdentifier = SQLITE_COL_START + 0;
+	int col_ownerCount         = SQLITE_COL_START + 1;
+	int col_record             = SQLITE_COL_START + 2;
+	
+	int bind_hash = SQLITE_BIND_START + 0;
 	
 	YapDatabaseString _hash; MakeYapDatabaseString(&_hash, hash);
-	sqlite3_bind_text(statement, bind_idx_hash, _hash.str, _hash.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_hash, _hash.str, _hash.length, SQLITE_STATIC);
 	
 	NSString *databaseIdentifier = nil;
 	int64_t ownerCount = 0;
@@ -1810,17 +1802,17 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 	{
 		int textSize;
 		
-		textSize = sqlite3_column_bytes(statement, column_idx_databaseIdentifier);
+		textSize = sqlite3_column_bytes(statement, col_databaseIdentifier);
 		if (textSize > 0)
 		{
-			const unsigned char *text = sqlite3_column_text(statement, column_idx_databaseIdentifier);
+			const unsigned char *text = sqlite3_column_text(statement, col_databaseIdentifier);
 			databaseIdentifier = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 		}
 		
-		ownerCount = sqlite3_column_int64(statement, column_idx_ownerCount);
+		ownerCount = sqlite3_column_int64(statement, col_ownerCount);
 		
-		const void *blob = sqlite3_column_blob(statement, column_idx_record);
-		int blobSize = sqlite3_column_bytes(statement, column_idx_record);
+		const void *blob = sqlite3_column_blob(statement, col_record);
+		int blobSize = sqlite3_column_bytes(statement, col_record);
 		
 		// Performance tuning:
 		// Use dataWithBytesNoCopy to avoid an extra allocation and memcpy.
@@ -1939,10 +1931,10 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 		  @"SELECT \"hash\", \"databaseIdentifier\", \"ownerCount\", \"record\""];
 		[query appendFormat:@" FROM \"%@\" WHERE \"hash\" IN (", [self recordTableName]];
 		
-		int const column_idx_hash               = SQLITE_COLUMN_START + 0;
-		int const column_idx_databaseIdentifier = SQLITE_COLUMN_START + 1;
-		int const column_idx_ownerCount         = SQLITE_COLUMN_START + 2;
-		int const column_idx_record             = SQLITE_COLUMN_START + 3;
+		int col_hash               = SQLITE_COL_START + 0;
+		int col_databaseIdentifier = SQLITE_COL_START + 1;
+		int col_ownerCount         = SQLITE_COL_START + 2;
+		int col_record             = SQLITE_COL_START + 3;
 		
 		for (NSUInteger i = 0; i < count; i++)
 		{
@@ -1985,22 +1977,22 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 			int textLen;
 			const unsigned char *text;
 			
-			textLen = sqlite3_column_bytes(statement, column_idx_hash);
-			text = sqlite3_column_text(statement, column_idx_hash);
+			textLen = sqlite3_column_bytes(statement, col_hash);
+			text = sqlite3_column_text(statement, col_hash);
 			
 			hash = [[NSString alloc] initWithBytes:text length:textLen encoding:NSUTF8StringEncoding];
 			
-			textLen = sqlite3_column_bytes(statement, column_idx_databaseIdentifier);
+			textLen = sqlite3_column_bytes(statement, col_databaseIdentifier);
 			if (textLen > 0)
 			{
-				text = sqlite3_column_text(statement, column_idx_databaseIdentifier);
+				text = sqlite3_column_text(statement, col_databaseIdentifier);
 				databaseIdentifier = [[NSString alloc] initWithBytes:text length:textLen encoding:NSUTF8StringEncoding];
 			}
 			
-			ownerCount = sqlite3_column_int64(statement, column_idx_ownerCount);
+			ownerCount = sqlite3_column_int64(statement, col_ownerCount);
 			
-			const void *blob = sqlite3_column_blob(statement, column_idx_record);
-			int blobSize = sqlite3_column_bytes(statement, column_idx_record);
+			const void *blob = sqlite3_column_blob(statement, col_record);
+			int blobSize = sqlite3_column_bytes(statement, col_record);
 			
 			// Performance tuning:
 			// Use dataWithBytesNoCopy to avoid an extra allocation and memcpy.
@@ -2061,25 +2053,25 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 	// INSERT OR REPLACE INTO "recordTableName"
 	//   ("hash", "databaseIdentifier", "ownerCount", "record") VALUES (?, ?, ?, ?, ?);
 	
-	int const bind_idx_hash               = SQLITE_BIND_START + 0;
-	int const bind_idx_databaseIdentifier = SQLITE_BIND_START + 1;
-	int const bind_idx_ownerCount         = SQLITE_BIND_START + 2;
-	int const bind_idx_record             = SQLITE_BIND_START + 3;
+	int bind_hash               = SQLITE_BIND_START + 0;
+	int bind_databaseIdentifier = SQLITE_BIND_START + 1;
+	int bind_ownerCount         = SQLITE_BIND_START + 2;
+	int bind_record             = SQLITE_BIND_START + 3;
 	
 	YapDatabaseString _hash; MakeYapDatabaseString(&_hash, hash);
-	sqlite3_bind_text(statement, bind_idx_hash, _hash.str, _hash.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_hash, _hash.str, _hash.length, SQLITE_STATIC);
 	
 	YapDatabaseString _dbID; MakeYapDatabaseString(&_dbID, dirtyRecordTableInfo.databaseIdentifier);
 	if (dirtyRecordTableInfo.databaseIdentifier)
-		sqlite3_bind_text(statement, bind_idx_databaseIdentifier, _dbID.str, _dbID.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_databaseIdentifier, _dbID.str, _dbID.length, SQLITE_STATIC);
 	else
-		sqlite3_bind_null(statement, bind_idx_databaseIdentifier);
+		sqlite3_bind_null(statement, bind_databaseIdentifier);
 	
-	sqlite3_bind_int64(statement, bind_idx_ownerCount, dirtyRecordTableInfo.dirty_ownerCount);
+	sqlite3_bind_int64(statement, bind_ownerCount, dirtyRecordTableInfo.dirty_ownerCount);
 	
 	__attribute__((objc_precise_lifetime)) NSData *recordBlob =
 	  [YDBCKRecord serializeRecord:dirtyRecordTableInfo.dirty_record];
-	sqlite3_bind_blob(statement, bind_idx_record, recordBlob.bytes, (int)recordBlob.length, SQLITE_STATIC);
+	sqlite3_bind_blob(statement, bind_record, recordBlob.bytes, (int)recordBlob.length, SQLITE_STATIC);
 	
 	int status = sqlite3_step(statement);
 	if (status != SQLITE_DONE)
@@ -2127,13 +2119,13 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 		
 		// UPDATE "recordTableName" SET "ownerCount" = ? WHERE "hash" = ?;
 		
-		int const bind_idx_ownerCount = SQLITE_BIND_START + 0;
-		int const bind_idx_hash       = SQLITE_BIND_START + 1;
+		int bind_ownerCount = SQLITE_BIND_START + 0;
+		int bind_hash       = SQLITE_BIND_START + 1;
 		
-		sqlite3_bind_int64(statement, bind_idx_ownerCount, dirtyRecordTableInfo.dirty_ownerCount);
+		sqlite3_bind_int64(statement, bind_ownerCount, dirtyRecordTableInfo.dirty_ownerCount);
 		
 		YapDatabaseString _hash; MakeYapDatabaseString(&_hash, hash);
-		sqlite3_bind_text(statement, bind_idx_hash, _hash.str, _hash.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_hash, _hash.str, _hash.length, SQLITE_STATIC);
 		
 		int status = sqlite3_step(statement);
 		if (status != SQLITE_DONE)
@@ -2168,14 +2160,14 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 	
 	// UPDATE "recordTableName" SET "record" = ? WHERE "hash" = ?;
 	
-	int const bind_idx_record = SQLITE_BIND_START + 0;
-	int const bind_idx_hash   = SQLITE_BIND_START + 1;
+	int bind_record          = SQLITE_BIND_START + 0;
+	int bind_hash            = SQLITE_BIND_START + 1;
 	
 	__attribute__((objc_precise_lifetime)) NSData *recordBlob = [YDBCKRecord serializeRecord:record];
-	sqlite3_bind_blob(statement, bind_idx_record, recordBlob.bytes, (int)recordBlob.length, SQLITE_STATIC);
+	sqlite3_bind_blob(statement, bind_record, recordBlob.bytes, (int)recordBlob.length, SQLITE_STATIC);
 	
 	YapDatabaseString _hash; MakeYapDatabaseString(&_hash, hash);
-	sqlite3_bind_text(statement, bind_idx_hash, _hash.str, _hash.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_hash, _hash.str, _hash.length, SQLITE_STATIC);
 	
 	int status = sqlite3_step(statement);
 	if (status != SQLITE_DONE)
@@ -2210,10 +2202,10 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 	
 	// DELETE FROM "recordTableName" WHERE "hash" = ?;
 	
-	int const bind_idx_hash = SQLITE_BIND_START;
+	int bind_hash = SQLITE_BIND_START + 0;
 	
 	YapDatabaseString _hash; MakeYapDatabaseString(&_hash, hash);
-	sqlite3_bind_text(statement, bind_idx_hash, _hash.str, _hash.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_hash, _hash.str, _hash.length, SQLITE_STATIC);
 	
 	YDBLogVerbose(@"Deleting 1 row from record table with hash(%@)...", hash);
 	
@@ -2292,7 +2284,7 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 		{
 			NSString *hash = [hashes objectAtIndex:i];
 			
-			sqlite3_bind_text(statement, (int)(SQLITE_BIND_START + i), [hash UTF8String], -1, SQLITE_TRANSIENT);
+			sqlite3_bind_text(statement, (int)(i + 1), [hash UTF8String], -1, SQLITE_TRANSIENT);
 		}
 		
 		YDBLogVerbose(@"Deleting %lu rows from records table...", (unsigned long)numParams);
@@ -2352,11 +2344,11 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 	
 	// SELECT "ownerCount" FROM "recordTableName" WHERE "hash" = ?;
 	
-	int const column_idx_ownerCount = SQLITE_COLUMN_START;
-	int const bind_idx_hash         = SQLITE_BIND_START;
+	int col_ownerCount = SQLITE_COL_START + 0;
+	int bind_hash = SQLITE_BIND_START + 0;
 	
 	YapDatabaseString _hash; MakeYapDatabaseString(&_hash, hash);
-	sqlite3_bind_text(statement, bind_idx_hash, _hash.str, _hash.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_hash, _hash.str, _hash.length, SQLITE_STATIC);
 	
 	BOOL found = NO;
 	int64_t ownerCount = 0;
@@ -2365,7 +2357,7 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 	if (status == SQLITE_ROW)
 	{
 		found = YES;
-		ownerCount = sqlite3_column_int64(statement, column_idx_ownerCount);
+		ownerCount = sqlite3_column_int64(statement, col_ownerCount);
 	}
 	else if (status == SQLITE_ERROR)
 	{
@@ -2400,35 +2392,35 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 	// INSERT INTO "queueTableName"
 	//   ("uuid", "prev", "databaseIdentifier", "deletedRecordIDs", "modifiedRecords") VALUES (?, ?, ?, ?, ?);
 	
-	int const bind_idx_uuid             = SQLITE_BIND_START + 0;
-	int const bind_idx_prev             = SQLITE_BIND_START + 1;
-	int const bind_idx_dbid             = SQLITE_BIND_START + 2;
-	int const bind_idx_deletedRecordIDs = SQLITE_BIND_START + 3;
-	int const bind_idx_modifiedRecords  = SQLITE_BIND_START + 4;
+	int bind_uuid             = SQLITE_BIND_START + 0;
+	int bind_prev             = SQLITE_BIND_START + 1;
+	int bind_dbid             = SQLITE_BIND_START + 2;
+	int bind_deletedRecordIDs = SQLITE_BIND_START + 3;
+	int bind_modifiedRecords  = SQLITE_BIND_START + 4;
 	
 	YapDatabaseString _uuid; MakeYapDatabaseString(&_uuid, changeSet.uuid);
-	sqlite3_bind_text(statement, bind_idx_uuid, _uuid.str, _uuid.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_uuid, _uuid.str, _uuid.length, SQLITE_STATIC);
 	
 	YapDatabaseString _prev; MakeYapDatabaseString(&_prev, changeSet.prev);
-	sqlite3_bind_text(statement, bind_idx_prev, _prev.str, _prev.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_prev, _prev.str, _prev.length, SQLITE_STATIC);
 	
 	YapDatabaseString _dbid; MakeYapDatabaseString(&_dbid, changeSet.databaseIdentifier);
 	if (changeSet.databaseIdentifier)
-		sqlite3_bind_text(statement, bind_idx_dbid, _dbid.str, _dbid.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_dbid, _dbid.str, _dbid.length, SQLITE_STATIC);
 	else
-		sqlite3_bind_null(statement, bind_idx_dbid);
+		sqlite3_bind_null(statement, bind_dbid);
 	
 	__attribute__((objc_precise_lifetime)) NSData *blob1 = [changeSet serializeDeletedRecordIDs];
 	if (blob1)
-		sqlite3_bind_blob(statement, bind_idx_deletedRecordIDs, blob1.bytes, (int)blob1.length, SQLITE_STATIC);
+		sqlite3_bind_blob(statement, bind_deletedRecordIDs, blob1.bytes, (int)blob1.length, SQLITE_STATIC);
 	else
-		sqlite3_bind_null(statement, bind_idx_deletedRecordIDs);
+		sqlite3_bind_null(statement, bind_deletedRecordIDs);
 	
 	__attribute__((objc_precise_lifetime)) NSData *blob2 = [changeSet serializeModifiedRecords];
 	if (blob2)
-		sqlite3_bind_blob(statement, bind_idx_modifiedRecords, blob2.bytes, (int)blob2.length, SQLITE_STATIC);
+		sqlite3_bind_blob(statement, bind_modifiedRecords, blob2.bytes, (int)blob2.length, SQLITE_STATIC);
 	else
-		sqlite3_bind_null(statement, bind_idx_modifiedRecords);
+		sqlite3_bind_null(statement, bind_modifiedRecords);
 	
 	int status = sqlite3_step(statement);
 	if (status != SQLITE_DONE)
@@ -2466,17 +2458,17 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 		
 		// UPDATE "queueTableName" SET "deletedRecordIDs" = ? WHERE "uuid" = ?;
 		
-		int const bind_idx_deletedRecordIDs = SQLITE_BIND_START + 0;
-		int const bind_idx_uuid             = SQLITE_BIND_START + 1;
+		int bind_deletedRecordIDs = SQLITE_BIND_START + 0;
+		int bind_uuid             = SQLITE_BIND_START + 1;
 		
 		__attribute__((objc_precise_lifetime)) NSData *blob = [changeSet serializeDeletedRecordIDs];
 		if (blob)
-			sqlite3_bind_blob(statement, bind_idx_deletedRecordIDs, blob.bytes, (int)blob.length, SQLITE_STATIC);
+			sqlite3_bind_blob(statement, bind_deletedRecordIDs, blob.bytes, (int)blob.length, SQLITE_STATIC);
 		else
-			sqlite3_bind_null(statement, bind_idx_deletedRecordIDs);
+			sqlite3_bind_null(statement, bind_deletedRecordIDs);
 		
 		YapDatabaseString _uuid; MakeYapDatabaseString(&_uuid, changeSet.uuid);
-		sqlite3_bind_text(statement, bind_idx_uuid, _uuid.str, _uuid.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_uuid, _uuid.str, _uuid.length, SQLITE_STATIC);
 		
 		int status = sqlite3_step(statement);
 		if (status != SQLITE_DONE)
@@ -2501,17 +2493,17 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 		
 		// UPDATE "queueTableName" SET "modifiedRecords" = ? WHERE "uuid" = ?;
 		
-		int const bind_idx_modifiedRecords = SQLITE_BIND_START + 0;
-		int const bind_idx_uuid            = SQLITE_BIND_START + 1;
+		int bind_modifiedRecords = SQLITE_BIND_START + 0;
+		int bind_uuid            = SQLITE_BIND_START + 1;
 		
 		__attribute__((objc_precise_lifetime)) NSData *blob = [changeSet serializeModifiedRecords];
 		if (blob)
-			sqlite3_bind_blob(statement, bind_idx_modifiedRecords, blob.bytes, (int)blob.length, SQLITE_STATIC);
+			sqlite3_bind_blob(statement, bind_modifiedRecords, blob.bytes, (int)blob.length, SQLITE_STATIC);
 		else
-			sqlite3_bind_null(statement, bind_idx_modifiedRecords);
+			sqlite3_bind_null(statement, bind_modifiedRecords);
 		
 		YapDatabaseString _uuid; MakeYapDatabaseString(&_uuid, changeSet.uuid);
-		sqlite3_bind_text(statement, bind_idx_uuid, _uuid.str, _uuid.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_uuid, _uuid.str, _uuid.length, SQLITE_STATIC);
 		
 		int status = sqlite3_step(statement);
 		if (status != SQLITE_DONE)
@@ -2537,24 +2529,24 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 		
 		// UPDATE "queueTableName" SET "deletedRecordIDs" = ?, "modifiedRecords" = ? WHERE "uuid" = ?;
 		
-		int const bind_idx_deletedRecordIDs = SQLITE_BIND_START + 0;
-		int const bind_idx_modifiedRecods   = SQLITE_BIND_START + 1;
-		int const bind_idx_uuid             = SQLITE_BIND_START + 2;
+		int bind_deletedRecordIDs = SQLITE_BIND_START + 0;
+		int bind_modifiedRecods   = SQLITE_BIND_START + 1;
+		int bind_uuid             = SQLITE_BIND_START + 2;
 		
 		__attribute__((objc_precise_lifetime)) NSData *drBlob = [changeSet serializeDeletedRecordIDs];
 		if (drBlob)
-			sqlite3_bind_blob(statement, bind_idx_deletedRecordIDs, drBlob.bytes, (int)drBlob.length, SQLITE_STATIC);
+			sqlite3_bind_blob(statement, bind_deletedRecordIDs, drBlob.bytes, (int)drBlob.length, SQLITE_STATIC);
 		else
-			sqlite3_bind_null(statement, bind_idx_deletedRecordIDs);
+			sqlite3_bind_null(statement, bind_deletedRecordIDs);
 		
 		__attribute__((objc_precise_lifetime)) NSData *mrBlob = [changeSet serializeModifiedRecords];
 		if (mrBlob)
-			sqlite3_bind_blob(statement, bind_idx_modifiedRecods, mrBlob.bytes, (int)mrBlob.length, SQLITE_STATIC);
+			sqlite3_bind_blob(statement, bind_modifiedRecods, mrBlob.bytes, (int)mrBlob.length, SQLITE_STATIC);
 		else
-			sqlite3_bind_null(statement, bind_idx_modifiedRecods);
+			sqlite3_bind_null(statement, bind_modifiedRecods);
 		
 		YapDatabaseString _uuid; MakeYapDatabaseString(&_uuid, changeSet.uuid);
-		sqlite3_bind_text(statement, bind_idx_uuid, _uuid.str, _uuid.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_uuid, _uuid.str, _uuid.length, SQLITE_STATIC);
 		
 		int status = sqlite3_step(statement);
 		if (status != SQLITE_DONE)
@@ -2585,10 +2577,10 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 	
 	// DELETE FROM "queueTableName" WHERE "uuid" = ?;
 	
-	int const bind_idx_uuid = SQLITE_BIND_START;
+	int bind_uuid = SQLITE_BIND_START + 0;
 	
 	YapDatabaseString _uuid; MakeYapDatabaseString(&_uuid, uuid);
-	sqlite3_bind_text(statement, bind_idx_uuid, _uuid.str, _uuid.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_uuid, _uuid.str, _uuid.length, SQLITE_STATIC);
 	
 	int status = sqlite3_step(statement);
 	if (status != SQLITE_DONE)
@@ -4432,18 +4424,18 @@ static BOOL ClassVersionsAreCompatible(int oldClassVersion, int newClassVersion)
 	
 	// SELECT COUNT(*) AS NumberOfRows FROM "recordTableName" WHERE "hash" = ?;
 	
-	int const column_idx_count = SQLITE_COLUMN_START;
-	int const bind_idx_hash    = SQLITE_BIND_START;
+	int col_count = SQLITE_COL_START + 0;
+	int bind_hash = SQLITE_BIND_START + 0;
 	
 	YapDatabaseString _hash; MakeYapDatabaseString(&_hash, hash);
-	sqlite3_bind_text(statement, bind_idx_hash, _hash.str, _hash.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_hash, _hash.str, _hash.length, SQLITE_STATIC);
 	
 	int64_t count = 0;
 	
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
-		count = sqlite3_column_int64(statement, column_idx_count);
+		count = sqlite3_column_int64(statement, col_count);
 	}
 	else if (status == SQLITE_ERROR)
 	{

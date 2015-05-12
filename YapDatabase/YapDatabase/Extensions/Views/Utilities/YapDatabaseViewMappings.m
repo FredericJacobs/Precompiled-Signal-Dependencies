@@ -113,7 +113,7 @@
 	snapshotOfLastUpdate = UINT64_MAX;
 }
 
-- (id)copyWithZone:(NSZone __unused *)zone
+- (id)copyWithZone:(NSZone *)zone
 {
 	YapDatabaseViewMappings *copy = [[YapDatabaseViewMappings alloc] init];
 	copy->allGroups = allGroups;

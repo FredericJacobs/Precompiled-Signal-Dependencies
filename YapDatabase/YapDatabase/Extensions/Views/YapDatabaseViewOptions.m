@@ -16,7 +16,7 @@
 	return self;
 }
 
-- (id)copyWithZone:(NSZone __unused *)zone
+- (id)copyWithZone:(NSZone *)zone
 {
 	YapDatabaseViewOptions *copy = [[[self class] alloc] init]; // [self class] required to support subclassing
 	copy->isPersistent = isPersistent;

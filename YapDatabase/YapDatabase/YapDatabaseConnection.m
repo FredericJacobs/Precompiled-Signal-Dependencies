@@ -14,7 +14,6 @@
 #import "YapDatabaseLogging.h"
 
 #import <objc/runtime.h>
-#import <mach/mach_time.h>
 #import <libkern/OSAtomic.h>
 
 #if TARGET_OS_IPHONE
@@ -38,6 +37,7 @@
 static NSUInteger const UNLIMITED_CACHE_LIMIT = 0;
 static NSUInteger const MIN_KEY_CACHE_LIMIT   = 500;
 
+static NSString *const ExtKey_class = @"class";
 
 typedef BOOL (*IMP_NSThread_isMainThread)(id, SEL);
 static IMP_NSThread_isMainThread ydb_NSThread_isMainThread;
@@ -286,7 +286,7 @@ NS_INLINE BOOL YDBIsMainThread()
 				sqlite3_busy_timeout(db, 50); // milliseconds
                 
 #ifdef SQLITE_HAS_CODEC
-                // Configure SQLCipher encryption (if needed)
+                // Configure SQLCipher encryption for the new database connection.
                 [database configureEncryptionForDatabase:db];
 #endif
 			}
@@ -426,7 +426,7 @@ NS_INLINE BOOL YDBIsMainThread()
 		[self _flushStatements];
 	}
 	
-	[extensions enumerateKeysAndObjectsUsingBlock:^(id __unused extNameObj, id extConnectionObj, BOOL __unused *stop) {
+	[extensions enumerateKeysAndObjectsUsingBlock:^(id extNameObj, id extConnectionObj, BOOL *stop) {
 		
 		[(YapDatabaseExtensionConnection *)extConnectionObj _flushMemoryWithFlags:flags];
 	}];
@@ -464,7 +464,7 @@ NS_INLINE BOOL YDBIsMainThread()
 }
 
 #if TARGET_OS_IPHONE
-- (void)didReceiveMemoryWarning:(NSNotification __unused *)notification
+- (void)didReceiveMemoryWarning:(NSNotification *)notification
 {
 	[self flushMemoryWithFlags:[self autoFlushMemoryFlags]];
 }
@@ -1290,7 +1290,7 @@ NS_INLINE BOOL YDBIsMainThread()
 	sqlite3_stmt **statement = &enumerateKeysInCollectionStatement;
 	if (*statement == NULL)
 	{
-		char *stmt = "SELECT \"rowid\", \"key\" FROM \"database2\" WHERE \"collection\" = ?;";
+		char *stmt = "SELECT \"rowid\", \"key\" FROM \"database2\" WHERE collection = ?;";
 		int stmtLen = (int)strlen(stmt);
 		
 		int status = sqlite3_prepare_v2(db, stmt, stmtLen+1, statement, NULL);
@@ -1858,9 +1858,9 @@ NS_INLINE BOOL YDBIsMainThread()
 			if (state->connection == self)
 			{
 				myState = state;
-				myState->activeReadTransaction = YES;
+				myState->yapLevelSharedReadLock = YES;
 			}
-			else if (state->activeWriteTransaction)
+			else if (state->yapLevelExclusiveWriteLock)
 			{
 				hasActiveWriteTransaction = YES;
 			}
@@ -1904,12 +1904,12 @@ NS_INLINE BOOL YDBIsMainThread()
 					[self noteCommittedChanges:changeset];
 				}
 				
-				// The noteCommittedChanges method (invoked above) updates our 'snapshot' variable.
 				NSAssert(snapshot == sqlSnapshot,
 				         @"Invalid connection state in preReadTransaction: snapshot(%llu) != sqlSnapshot(%llu): %@",
 				         snapshot, sqlSnapshot, changesets);
 			}
 			
+			myState->lastKnownSnapshot = snapshot;
 			myState->longLivedReadTransaction = (longLivedReadTransaction != nil);
 			myState->sqlLevelSharedReadLock = YES;
 			needsMarkSqlLevelSharedReadLock = NO;
@@ -1940,18 +1940,15 @@ NS_INLINE BOOL YDBIsMainThread()
 					[self noteCommittedChanges:changeset];
 				}
 				
-				// The noteCommittedChanges method (invoked above) updates our 'snapshot' variable.
 				NSAssert(snapshot == globalSnapshot,
 				         @"Invalid connection state in preReadTransaction: snapshot(%llu) != globalSnapshot(%llu): %@",
 				         snapshot, globalSnapshot, changesets);
 			}
 			
+			myState->lastKnownSnapshot = snapshot;
 			myState->sqlLevelSharedReadLock = NO;
 			needsMarkSqlLevelSharedReadLock = YES;
 		}
-		
-		myState->lastTransactionSnapshot = snapshot;
-		myState->lastTransactionTime = mach_absolute_time();
 	}});
 }
 
@@ -2005,26 +2002,25 @@ NS_INLINE BOOL YDBIsMainThread()
 		{
 			if (state->connection == self)
 			{
-				state->activeReadTransaction = NO;
-				state->longLivedReadTransaction = NO;
-				
-				wasMaybeBlockingWriteTransaction = !state->sqlLevelSharedReadLock;
+				wasMaybeBlockingWriteTransaction = state->yapLevelSharedReadLock && !state->sqlLevelSharedReadLock;
+				state->yapLevelSharedReadLock = NO;
 				state->sqlLevelSharedReadLock = NO;
+				state->longLivedReadTransaction = NO;
 			}
-			else if (state->activeReadTransaction)
+			else if (state->yapLevelSharedReadLock)
 			{
 				// Active sibling connection: read-only
 				
-				minSnapshot = MIN(state->lastTransactionSnapshot, minSnapshot);
+				minSnapshot = MIN(state->lastKnownSnapshot, minSnapshot);
 				
 				if (!state->sqlLevelSharedReadLock)
 					countOtherMaybeBlockingWriteTransaction++;
 			}
-			else if (state->activeWriteTransaction)
+			else if (state->yapLevelExclusiveWriteLock)
 			{
 				// Active sibling connection: read-write
 				
-				minSnapshot = MIN(state->lastTransactionSnapshot, minSnapshot);
+				minSnapshot = MIN(state->lastKnownSnapshot, minSnapshot);
 				
 				if (state->waitingForWriteLock)
 					blockedWriteState = state;
@@ -2053,7 +2049,7 @@ NS_INLINE BOOL YDBIsMainThread()
 		
 		[database asyncCheckpoint:minSnapshot];
 		
-		[registeredMemoryTables enumerateKeysAndObjectsUsingBlock:^(id __unused key, id obj, BOOL __unused *stop) {
+		[registeredMemoryTables enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
 			
 			[(YapMemoryTable *)obj asyncCheckpoint:minSnapshot];
 		}];
@@ -2088,7 +2084,7 @@ NS_INLINE BOOL YDBIsMainThread()
 	// Execute "BEGIN TRANSACTION" on database connection.
 	// This is actually a deferred transaction, meaning the sqlite connection won't actually
 	// acquire any locks until it executes something.
-	// There are various alternatives to this, including "immediate" and "exclusive" transactions.
+	// There are various alternatives to this, including a "immediate" and "exclusive" transactions.
 	// However, these don't do what we want. Instead they block other read-only transactions.
 	// The deferred transaction allows other read-only transactions and even avoids
 	// sqlite operations if no modifications are made.
@@ -2116,7 +2112,7 @@ NS_INLINE BOOL YDBIsMainThread()
 			if (state->connection == self)
 			{
 				myState = state;
-				myState->activeWriteTransaction = YES;
+				myState->yapLevelExclusiveWriteLock = YES;
 			}
 		}
 		
@@ -2138,14 +2134,12 @@ NS_INLINE BOOL YDBIsMainThread()
 				[self noteCommittedChanges:changeset];
 			}
 			
-			// The noteCommittedChanges method (invoked above) updates our 'snapshot' variable.
 			NSAssert(snapshot == globalSnapshot,
 			         @"Invalid connection state in preReadWriteTransaction: snapshot(%llu) != globalSnapshot(%llu)",
 			         snapshot, globalSnapshot);
 		}
 		
-		myState->lastTransactionSnapshot = snapshot;
-		myState->lastTransactionTime = mach_absolute_time();
+		myState->lastKnownSnapshot = snapshot;
 		needsMarkSqlLevelSharedReadLock = NO;
 		
 		YDBLogVerbose(@"YapDatabaseConnection(%p) starting read-write transaction.", self);
@@ -2205,7 +2199,7 @@ NS_INLINE BOOL YDBIsMainThread()
 			{
 				if (state->connection == self)
 				{
-					state->activeWriteTransaction = NO;
+					state->yapLevelExclusiveWriteLock = NO;
 					break;
 				}
 			}
@@ -2343,7 +2337,7 @@ NS_INLINE BOOL YDBIsMainThread()
 				{
 					myState = state;
 				}
-				else if (state->activeReadTransaction && !state->sqlLevelSharedReadLock)
+				else if (state->yapLevelSharedReadLock && !state->sqlLevelSharedReadLock)
 				{
 					waitForReadOnlyTransactions = YES;
 				}
@@ -2449,13 +2443,13 @@ NS_INLINE BOOL YDBIsMainThread()
 		
 		for (YapDatabaseConnectionState *state in database->connectionStates)
 		{
-			if (state->activeReadTransaction)
+			if (state->yapLevelSharedReadLock)
 			{
-				minSnapshot = MIN(state->lastTransactionSnapshot, minSnapshot);
+				minSnapshot = MIN(state->lastKnownSnapshot, minSnapshot);
 			}
 		}
 		
-		myState->activeWriteTransaction = NO;
+		myState->yapLevelExclusiveWriteLock = NO;
 		myState->waitingForWriteLock = NO;
 		
 		YDBLogVerbose(@"YapDatabaseConnection(%p) completing read-write transaction.", self);
@@ -2472,7 +2466,7 @@ NS_INLINE BOOL YDBIsMainThread()
 		{
 			[database asyncCheckpoint:snapshot];
 			
-			[registeredMemoryTables enumerateKeysAndObjectsUsingBlock:^(id __unused key, id obj, BOOL __unused *stop) {
+			[registeredMemoryTables enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
 				
 				[(YapMemoryTable *)obj asyncCheckpoint:snapshot];
 			}];
@@ -2544,14 +2538,13 @@ NS_INLINE BOOL YDBIsMainThread()
 			if (state->connection == self)
 			{
 				myState = state;
-				myState->activeWriteTransaction = YES;
+				myState->yapLevelExclusiveWriteLock = YES;
 			}
 		}
 		
 		NSAssert(myState != nil, @"Missing state in database->connectionStates");
 		
-		myState->lastTransactionSnapshot = [database snapshot];
-		myState->lastTransactionTime = mach_absolute_time();
+		myState->lastKnownSnapshot = [database snapshot];
 		needsMarkSqlLevelSharedReadLock = YES;
 		
 		YDBLogVerbose(@"YapDatabaseConnection(%p) starting vacuum operation.", self);
@@ -2619,15 +2612,15 @@ NS_INLINE BOOL YDBIsMainThread()
 			{
 				myState = state;
 			}
-			else if (state->activeReadTransaction)
+			else if (state->yapLevelSharedReadLock)
 			{
-				minSnapshot = MIN(state->lastTransactionSnapshot, minSnapshot);
+				minSnapshot = MIN(state->lastKnownSnapshot, minSnapshot);
 			}
 		}
 		
 		NSAssert(myState != nil, @"Missing state in database->connectionStates");
 		
-		myState->activeWriteTransaction = NO;
+		myState->yapLevelExclusiveWriteLock = NO;
 		myState->waitingForWriteLock = NO;
 		
 		YDBLogVerbose(@"YapDatabaseConnection(%p) completing read-write transaction.", self);
@@ -2669,19 +2662,16 @@ NS_INLINE BOOL YDBIsMainThread()
 	
 	// SELECT data FROM 'yap2' WHERE extension = ? AND key = ? ;
 	
-	int const bind_idx_extension = SQLITE_BIND_START + 0;
-	int const bind_idx_key       = SQLITE_BIND_START + 1;
-	
 	char *extension = "";
-	sqlite3_bind_text(statement, bind_idx_extension, extension, (int)strlen(extension), SQLITE_STATIC);
+	sqlite3_bind_text(statement, 1, extension, (int)strlen(extension), SQLITE_STATIC);
 	
 	char *key = "snapshot";
-	sqlite3_bind_text(statement, bind_idx_key, key, (int)strlen(key), SQLITE_STATIC);
+	sqlite3_bind_text(statement, 2, key, (int)strlen(key), SQLITE_STATIC);
 	
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
-		result = (uint64_t)sqlite3_column_int64(statement, SQLITE_COLUMN_START);
+		result = (uint64_t)sqlite3_column_int64(statement, 0);
 	}
 	else if (status == SQLITE_ERROR)
 	{
@@ -2707,17 +2697,13 @@ NS_INLINE BOOL YDBIsMainThread()
 	
 	// INSERT OR REPLACE INTO "yap2" ("extension", "key", "data") VALUES (?, ?, ?);
 	
-	int const bind_idx_extension = SQLITE_BIND_START + 0;
-	int const bind_idx_key       = SQLITE_BIND_START + 1;
-	int const bind_idx_data      = SQLITE_BIND_START + 2;
-	
 	char *extension = "";
-	sqlite3_bind_text(statement, bind_idx_extension, extension, (int)strlen(extension), SQLITE_STATIC);
+	sqlite3_bind_text(statement, 1, extension, (int)strlen(extension), SQLITE_STATIC);
 	
 	char *key = "snapshot";
-	sqlite3_bind_text(statement, bind_idx_key, key, (int)strlen(key), SQLITE_STATIC);
+	sqlite3_bind_text(statement, 2, key, (int)strlen(key), SQLITE_STATIC);
 	
-	sqlite3_bind_int64(statement, bind_idx_data, (sqlite3_int64)newSnapshot);
+	sqlite3_bind_int64(statement, 3, (sqlite3_int64)newSnapshot);
 	
 	int status = sqlite3_step(statement);
 	if (status != SQLITE_DONE)
@@ -2767,7 +2753,7 @@ NS_INLINE BOOL YDBIsMainThread()
 			{
 				state->sqlLevelSharedReadLock = YES;
 			}
-			else if (state->activeReadTransaction && !state->sqlLevelSharedReadLock)
+			else if (state->yapLevelSharedReadLock && !state->sqlLevelSharedReadLock)
 			{
 				countOtherMaybeBlockingWriteTransaction++;
 			}
@@ -2948,101 +2934,6 @@ NS_INLINE BOOL YDBIsMainThread()
 		dispatch_async(connectionQueue, block);
 }
 
-/**
- * Long-lived read transactions are a great way to achive stability, especially in places like the main-thread.
- * However, they pose a unique problem. These long-lived transactions often start out by
- * locking the WAL (write ahead log). This prevents the WAL from ever getting reset,
- * and thus causes the WAL to potentially grow infinitely large. In order to allow the WAL to get properly reset,
- * we need the long-lived read transactions to "reset". That is, without changing their stable state (their snapshot),
- * we need them to restart the transaction, but this time without locking this WAL.
- * 
- * We use the maybeResetLongLivedReadTransaction method to achieve this.
-**/
-- (void)maybeResetLongLivedReadTransaction
-{
-	// Async dispatch onto the writeQueue so we know there aren't any other active readWrite transactions
-	
-	dispatch_async(database->writeQueue, ^{
-		
-		// Pause the writeQueue so readWrite operations can't interfere with us.
-		// We abort if our connection has a readWrite transaction pending.
-		
-		BOOL abort = NO;
-		
-		OSSpinLockLock(&lock);
-		{
-			if (activeReadWriteTransaction) {
-				abort = YES;
-			}
-			else if (!writeQueueSuspended) {
-				dispatch_suspend(database->writeQueue);
-				writeQueueSuspended = YES;
-			}
-		}
-		OSSpinLockUnlock(&lock);
-		
-		if (abort) return;
-		
-		// Async dispatch onto our connectionQueue.
-		
-		dispatch_async(connectionQueue, ^{
-			
-			// If possible, silently reset the longLivedReadTransaction (same snapshot, no longer locking the WAL)
-			
-			BOOL writeQueueStillSuspended = NO;
-			OSSpinLockLock(&lock);
-			{
-				writeQueueStillSuspended = writeQueueSuspended;
-			}
-			OSSpinLockUnlock(&lock);
-			
-			if (writeQueueStillSuspended && longLivedReadTransaction && (snapshot == [database snapshot]))
-			{
-				NSArray *empty = [self beginLongLivedReadTransaction];
-				
-				if ([empty count] != 0)
-				{
-					YDBLogError(@"Core logic failure! "
-					            @"Silent longLivedReadTransaction reset resulted in non-empty notification array!");
-				}
-			}
-			
-			// Resume the writeQueue
-			
-			OSSpinLockLock(&lock);
-			{
-				if (writeQueueSuspended) {
-					dispatch_resume(database->writeQueue);
-					writeQueueSuspended = NO;
-				}
-			}
-			OSSpinLockUnlock(&lock);
-		});
-	});
-}
-
-NS_INLINE void __preWriteQueue(YapDatabaseConnection *connection)
-{
-	OSSpinLockLock(&connection->lock);
-	{
-		if (connection->writeQueueSuspended) {
-			dispatch_resume(connection->database->writeQueue);
-			connection->writeQueueSuspended = NO;
-		}
-		connection->activeReadWriteTransaction = YES;
-	}
-	OSSpinLockUnlock(&connection->lock);
-}
-
-NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
-{
-	OSSpinLockLock(&connection->lock);
-	{
-		connection->activeReadWriteTransaction = NO;
-	}
-	OSSpinLockUnlock(&connection->lock);
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Changeset Architecture
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3109,7 +3000,7 @@ NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
 	__block NSMutableDictionary *internalChangeset_extensions = nil;
 	__block NSMutableDictionary *externalChangeset_extensions = nil;
 	
-	[extensions enumerateKeysAndObjectsUsingBlock:^(id extName, id extConnectionObj, BOOL __unused *stop) {
+	[extensions enumerateKeysAndObjectsUsingBlock:^(id extName, id extConnectionObj, BOOL *stop) {
 		
 		__unsafe_unretained YapDatabaseExtensionConnection *extConnection = extConnectionObj;
 		
@@ -3294,7 +3185,7 @@ NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
 		// Use existing extensions (extensions ivar, not [self extensions]).
 		// There's no need to create any new extConnections at this point.
 		
-		[extensions enumerateKeysAndObjectsUsingBlock:^(id extName, id extConnectionObj, BOOL __unused *stop) {
+		[extensions enumerateKeysAndObjectsUsingBlock:^(id extName, id extConnectionObj, BOOL *stop) {
 			
 			__unsafe_unretained YapDatabaseExtensionConnection *extConnection = extConnectionObj;
 			
@@ -3335,7 +3226,7 @@ NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
 		if (hasRemovedCollections)
 		{
 			__block NSMutableArray *toRemove = nil;
-			[keyCache enumerateKeysAndObjectsWithBlock:^(id key, id obj, BOOL __unused *stop) {
+			[keyCache enumerateKeysAndObjectsWithBlock:^(id key, id obj, BOOL *stop) {
 				
 				__unsafe_unretained NSNumber *rowidNumber = (NSNumber *)key;
 				__unsafe_unretained YapCollectionKey *collectionKey = (YapCollectionKey *)obj;
@@ -3354,7 +3245,7 @@ NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
 		
 		if (changeset_removedRowids)
 		{
-			[changeset_removedRowids enumerateObjectsUsingBlock:^(id obj, BOOL __unused *stop) {
+			[changeset_removedRowids enumerateObjectsUsingBlock:^(id obj, BOOL *stop) {
 				
 				[keyCache removeObjectForKey:obj];
 			}];
@@ -3380,7 +3271,7 @@ NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
 		BOOL isPolicyContainment = (objectPolicy == YapDatabasePolicyContainment);
 		BOOL isPolicyShare       = (objectPolicy == YapDatabasePolicyShare);
 		
-		[changeset_objectChanges enumerateKeysAndObjectsUsingBlock:^(id key, id newObject, BOOL __unused *stop) {
+		[changeset_objectChanges enumerateKeysAndObjectsUsingBlock:^(id key, id newObject, BOOL *stop) {
 			
 			__unsafe_unretained YapCollectionKey *cacheKey = (YapCollectionKey *)key;
 			
@@ -3417,7 +3308,7 @@ NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
 		NSMutableArray *keysToUpdate = [NSMutableArray arrayWithCapacity:updateCapacity];
 		NSMutableArray *keysToRemove = [NSMutableArray arrayWithCapacity:removeCapacity];
 		
-		[objectCache enumerateKeysWithBlock:^(id key, BOOL __unused *stop) {
+		[objectCache enumerateKeysWithBlock:^(id key, BOOL *stop) {
 			
 			// Order matters.
 			// Consider the following database change:
@@ -3492,7 +3383,7 @@ NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
 		BOOL isPolicyContainment = (metadataPolicy == YapDatabasePolicyContainment);
 		BOOL isPolicyShare       = (metadataPolicy == YapDatabasePolicyShare);
 		
-		[changeset_metadataChanges enumerateKeysAndObjectsUsingBlock:^(id key, id newMetadata, BOOL __unused *stop) {
+		[changeset_metadataChanges enumerateKeysAndObjectsUsingBlock:^(id key, id newMetadata, BOOL *stop) {
 			
 			__unsafe_unretained YapCollectionKey *cacheKey = (YapCollectionKey *)key;
 			
@@ -3529,7 +3420,7 @@ NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
 		NSMutableArray *keysToUpdate = [NSMutableArray arrayWithCapacity:updateCapacity];
 		NSMutableArray *keysToRemove = [NSMutableArray arrayWithCapacity:removeCapacity];
 		
-		[metadataCache enumerateKeysWithBlock:^(id key, BOOL __unused *stop) {
+		[metadataCache enumerateKeysWithBlock:^(id key, BOOL *stop) {
 			
 			// Order matters.
 			// Consider the following database change:
@@ -4210,7 +4101,7 @@ NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
 	
 	if (!extensionsReady)
 	{
-		[registeredExtensions enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL __unused *stop) {
+		[registeredExtensions enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
 			
 			__unsafe_unretained NSString *extName = key;
 			__unsafe_unretained YapDatabaseExtension *ext = obj;
@@ -4365,7 +4256,7 @@ NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
 	BOOL wasPersistent;
 	
 	YapMemoryTableTransaction *memoryTableTransaction = [transaction yapMemoryTableTransaction];
-	YapCollectionKey *classKey = [[YapCollectionKey alloc] initWithCollection:extensionName key:ext_key_class];
+	YapCollectionKey *classKey = [[YapCollectionKey alloc] initWithCollection:extensionName key:ExtKey_class];
 	
 	className = [memoryTableTransaction objectForKey:classKey];
 	if (className)
@@ -4374,7 +4265,7 @@ NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
 	}
 	else
 	{
-		className = [transaction stringValueForKey:ext_key_class extension:extensionName];
+		className = [transaction stringValueForKey:ExtKey_class extension:extensionName];
 		wasPersistent = YES;
 	}
 	
@@ -4408,7 +4299,7 @@ NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
 			// remove rows in yap memory table (where collectionKey.collection == extensionName)
 			NSMutableArray *keysToRemove = [NSMutableArray array];
 			
-			[memoryTableTransaction enumerateKeysWithBlock:^(id key, BOOL __unused *stop) {
+			[memoryTableTransaction enumerateKeysWithBlock:^(id key, BOOL *stop) {
 				
 				__unsafe_unretained YapCollectionKey *ck = (YapCollectionKey *)key;
 				if ([ck.collection isEqualToString:extensionName])
@@ -4463,7 +4354,7 @@ NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
 	//
 	// Note: @"class" is a reserved key for all extensions.
 	
-	NSString *prevExtensionClassName = [transaction stringValueForKey:ext_key_class extension:extensionName];
+	NSString *prevExtensionClassName = [transaction stringValueForKey:ExtKey_class extension:extensionName];
 	if (prevExtensionClassName == nil)
 	{
 		// First time registration
@@ -4532,11 +4423,11 @@ NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
 		
 		if ([extension isPersistent])
 		{
-			[transaction setStringValue:extensionClassName forKey:ext_key_class extension:extensionName];
+			[transaction setStringValue:extensionClassName forKey:ExtKey_class extension:extensionName];
 		}
 		else
 		{
-			YapCollectionKey *classKey = [[YapCollectionKey alloc] initWithCollection:extensionName key:ext_key_class];
+			YapCollectionKey *classKey = [[YapCollectionKey alloc] initWithCollection:extensionName key:ExtKey_class];
 			[[transaction yapMemoryTableTransaction] setObject:extensionClassName forKey:classKey];
 		}
 	}
@@ -4870,6 +4761,98 @@ NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
 		registeredMemoryTables = [newRegisteredMemoryTables copy];
 		registeredMemoryTablesChanged = YES;
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark Utilities
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Long-lived read transactions are a great way to achive stability, especially in places like the main-thread.
+ * However, they pose a unique problem. These long-lived transactions often start out by
+ * locking the WAL (write ahead log). This prevents the WAL from ever getting reset,
+ * and thus causes the WAL to potentially grow infinitely large. In order to allow the WAL to get properly reset,
+ * we need the long-lived read transactions to "reset". That is, without changing their stable state (their snapshot),
+ * we need them to restart the transaction, but this time without locking this WAL.
+ * 
+ * We use the maybeResetLongLivedReadTransaction method to achieve this.
+**/
+- (void)maybeResetLongLivedReadTransaction
+{
+	// Async dispatch onto the writeQueue so we know there aren't any other active readWrite transactions
+	
+	dispatch_async(database->writeQueue, ^{
+		
+		// Pause the writeQueue so readWrite operations can't interfere with us.
+		// We abort if our connection has a readWrite transaction pending.
+		
+		BOOL abort = NO;
+		
+		OSSpinLockLock(&lock);
+		{
+			if (activeReadWriteTransaction) {
+				abort = YES;
+			}
+			else if (!writeQueueSuspended) {
+				dispatch_suspend(database->writeQueue);
+				writeQueueSuspended = YES;
+			}
+		}
+		OSSpinLockUnlock(&lock);
+		
+		if (abort) return;
+		
+		// Async dispatch onto our connectionQueue.
+		
+		dispatch_async(connectionQueue, ^{
+			
+			// If possible, silently reset the longLivedReadTransaction (same snapshot, no longer locking the WAL)
+			
+			if (longLivedReadTransaction && (snapshot == [database snapshot]))
+			{
+				NSArray *empty = [self beginLongLivedReadTransaction];
+				
+				if ([empty count] != 0)
+				{
+					YDBLogError(@"Core logic failure! "
+					            @"Silent longLivedReadTransaction reset resulted in non-empty notification array!");
+				}
+			}
+			
+			// Resume the writeQueue
+			
+			OSSpinLockLock(&lock);
+			{
+				if (writeQueueSuspended) {
+					dispatch_resume(database->writeQueue);
+					writeQueueSuspended = NO;
+				}
+			}
+			OSSpinLockUnlock(&lock);
+		});
+	});
+}
+
+NS_INLINE void __preWriteQueue(YapDatabaseConnection *connection)
+{
+	OSSpinLockLock(&connection->lock);
+	{
+		if (connection->writeQueueSuspended) {
+			dispatch_resume(connection->database->writeQueue);
+			connection->writeQueueSuspended = NO;
+		}
+		connection->activeReadWriteTransaction = YES;
+	}
+	OSSpinLockUnlock(&connection->lock);
+}
+
+NS_INLINE void __postWriteQueue(YapDatabaseConnection *connection)
+{
+	OSSpinLockLock(&connection->lock);
+	{
+		connection->activeReadWriteTransaction = NO;
+	}
+	OSSpinLockUnlock(&connection->lock);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

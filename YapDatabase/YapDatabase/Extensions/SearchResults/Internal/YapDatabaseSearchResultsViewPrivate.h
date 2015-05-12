@@ -1,5 +1,4 @@
 #import "YapDatabaseSearchResultsView.h"
-#import "YapDatabaseSearchResultsViewOptions.h"
 #import "YapDatabaseSearchResultsViewConnection.h"
 #import "YapDatabaseSearchResultsViewTransaction.h"
 
@@ -17,15 +16,6 @@
 **/
 static NSString *const changeset_key_query = @"query";
 
-@interface YapDatabaseSearchResultsViewOptions ()
-
-@property (nonatomic, strong, readonly) YapDatabaseFullTextSearchSnippetOptions *snippetOptions_NoCopy;
-
-@end
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark -
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 @interface YapDatabaseSearchResultsView () {
 @public
