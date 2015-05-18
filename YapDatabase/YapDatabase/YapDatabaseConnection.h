@@ -75,6 +75,7 @@ typedef NS_OPTIONS(NSUInteger, YapDatabaseConnectionFlushMemoryFlags) {
 
 
 @interface YapDatabaseConnection : NSObject
+NS_ASSUME_NONNULL_BEGIN
 
 /**
  * A database connection maintains a strong reference to its parent.
@@ -325,7 +326,7 @@ typedef NS_OPTIONS(NSUInteger, YapDatabaseConnectionFlushMemoryFlags) {
  * The completionBlock will be invoked on the main thread (dispatch_get_main_queue()).
 **/
 - (void)asyncReadWithBlock:(void (^)(YapDatabaseReadTransaction *transaction))block
-           completionBlock:(dispatch_block_t)completionBlock;
+           completionBlock:(nullable dispatch_block_t)completionBlock;
 
 /**
  * Read-only access to the database.
@@ -340,38 +341,8 @@ typedef NS_OPTIONS(NSUInteger, YapDatabaseConnectionFlushMemoryFlags) {
  * If NULL, dispatch_get_main_queue() is automatically used.
 **/
 - (void)asyncReadWithBlock:(void (^)(YapDatabaseReadTransaction *transaction))block
-           completionQueue:(dispatch_queue_t)completionQueue
-           completionBlock:(dispatch_block_t)completionBlock;
-
-/**
- * DEPRECATED in v2.5
- *
- * The syntax has been changed in order to make the code easier to read.
- * In the past the code would end up looking like this:
- * 
- * [databaseConnection asyncReadWriteWithBlock:^(YapDatabaseReadWriteTransaction *transaction){
- *     // 100 lines of code here
- * } completionBlock:^{
- *     // 50 lines of code here
- * }
- * completionQueue:importantQueue]; <-- Very hidden in code. Often overlooked.
- * 
- * The new syntax puts the completionQueue declaration before the completionBlock declaration.
- * Since the two are intricately linked, they should be next to each other in code.
- * Then end result is much easier to read:
- * 
- * [databaseConnection asyncReadWriteWithBlock:^(YapDatabaseReadWriteTransaction *transaction){
- *     // 100 lines of code here
- * }
- * completionQueue:importantQueue <-- Easier to see
- * completionBlock:^{
- *     // 50 lines of code here
- * }];
-**/
-- (void)asyncReadWithBlock:(void (^)(YapDatabaseReadTransaction *transaction))block
-           completionBlock:(dispatch_block_t)completionBlock
-           completionQueue:(dispatch_queue_t)completionQueue
-__attribute((deprecated("Use method asyncReadWithBlock:completionQueue:completionBlock: instead")));
+           completionQueue:(nullable dispatch_queue_t)completionQueue
+           completionBlock:(nullable dispatch_block_t)completionBlock;
 
 /**
  * Read-write access to the database.
@@ -396,7 +367,7 @@ __attribute((deprecated("Use method asyncReadWithBlock:completionQueue:completio
  * The completionBlock will be invoked on the main thread (dispatch_get_main_queue()).
 **/
 - (void)asyncReadWriteWithBlock:(void (^)(YapDatabaseReadWriteTransaction *transaction))block
-                completionBlock:(dispatch_block_t)completionBlock;
+                completionBlock:(nullable dispatch_block_t)completionBlock;
 
 /**
  * Read-write access to the database.
@@ -412,38 +383,8 @@ __attribute((deprecated("Use method asyncReadWithBlock:completionQueue:completio
  * If NULL, dispatch_get_main_queue() is automatically used.
 **/
 - (void)asyncReadWriteWithBlock:(void (^)(YapDatabaseReadWriteTransaction *transaction))block
-                completionQueue:(dispatch_queue_t)completionQueue
-                completionBlock:(dispatch_block_t)completionBlock;
-
-/**
- * DEPRECATED in v2.5
- *
- * The syntax has been changed in order to make the code easier to read.
- * In the past the code would end up looking like this:
- *
- * [databaseConnection asyncReadWriteWithBlock:^(YapDatabaseReadWriteTransaction *transaction){
- *     // 100 lines of code here
- * } completionBlock:^{
- *     // 50 lines of code here
- * }
- * completionQueue:importantQueue]; <-- Very hidden in code. Often overlooked.
- *
- * The new syntax puts the completionQueue declaration before the completionBlock declaration.
- * Since the two are intricately linked, they should be next to each other in code.
- * Then end result is much easier to read:
- *
- * [databaseConnection asyncReadWriteWithBlock:^(YapDatabaseReadWriteTransaction *transaction){
- *     // 100 lines of code here
- * }
- * completionQueue:importantQueue <-- Easier to see
- * completionBlock:^{
- *     // 50 lines of code here
- * }];
-**/
-- (void)asyncReadWriteWithBlock:(void (^)(YapDatabaseReadWriteTransaction *transaction))block
-                completionBlock:(dispatch_block_t)completionBlock
-                completionQueue:(dispatch_queue_t)completionQueue
-__attribute((deprecated("Use method asyncReadWriteWithBlock:completionQueue:completionBlock: instead")));
+                completionQueue:(nullable dispatch_queue_t)completionQueue
+                completionBlock:(nullable dispatch_block_t)completionBlock;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark Long-Lived Transactions
@@ -712,7 +653,7 @@ __attribute((deprecated("Use method asyncReadWriteWithBlock:completionQueue:comp
  * 
  * @see pragmaAutoVacuum
 **/
-- (void)asyncVacuumWithCompletionBlock:(dispatch_block_t)completionBlock;
+- (void)asyncVacuumWithCompletionBlock:(nullable dispatch_block_t)completionBlock;
 
 /**
  * Performs a VACUUM on the sqlite database.
@@ -731,7 +672,8 @@ __attribute((deprecated("Use method asyncReadWriteWithBlock:completionQueue:comp
  * 
  * @see pragmaAutoVacuum
 **/
-- (void)asyncVacuumWithCompletionQueue:(dispatch_queue_t)completionQueue
-                       completionBlock:(dispatch_block_t)completionBlock;
+- (void)asyncVacuumWithCompletionQueue:(nullable dispatch_queue_t)completionQueue
+                       completionBlock:(nullable dispatch_block_t)completionBlock;
 
+NS_ASSUME_NONNULL_END
 @end

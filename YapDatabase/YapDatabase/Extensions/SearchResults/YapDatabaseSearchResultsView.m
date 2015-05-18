@@ -61,10 +61,10 @@
 #pragma mark Invalid
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-- (instancetype)initWithGrouping:(YapDatabaseViewGrouping *)grouping
-                         sorting:(YapDatabaseViewSorting *)sorting
-                      versionTag:(NSString *)inVersionTag
-                         options:(YapDatabaseViewOptions *)inOptions
+- (instancetype)initWithGrouping:(YapDatabaseViewGrouping __unused *)grouping
+                         sorting:(YapDatabaseViewSorting __unused *)sorting
+                      versionTag:(NSString __unused *)inVersionTag
+                         options:(YapDatabaseViewOptions __unused *)inOptions
 {
 	NSString *reason = @"You must use the init method(s) specific to YapDatabaseSearchResults.";
 	
@@ -131,28 +131,6 @@
 		options = inOptions ? [inOptions copy] : [[YapDatabaseSearchResultsViewOptions alloc] init];
 	}
 	return self;
-}
-
-/**
- * DEPRECATED
- * Use method initWithFullTextSearchName:grouping:sorting:versionTag:options: instead.
-**/
-- (id)initWithFullTextSearchName:(NSString *)inFullTextSearchName
-                   groupingBlock:(YapDatabaseViewGroupingBlock)grpBlock
-               groupingBlockType:(YapDatabaseViewBlockType)grpBlockType
-                    sortingBlock:(YapDatabaseViewSortingBlock)srtBlock
-                sortingBlockType:(YapDatabaseViewBlockType)srtBlockType
-                      versionTag:(NSString *)inVersionTag
-                         options:(YapDatabaseSearchResultsViewOptions *)inOptions
-{
-	YapDatabaseViewGrouping *grouping = [YapDatabaseViewGrouping withBlock:grpBlock blockType:grpBlockType];
-	YapDatabaseViewSorting *sorting = [YapDatabaseViewSorting withBlock:srtBlock blockType:srtBlockType];
-	
-	return [self initWithFullTextSearchName:inFullTextSearchName
-	                               grouping:grouping
-	                                sorting:sorting
-	                             versionTag:inVersionTag
-	                                options:inOptions];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

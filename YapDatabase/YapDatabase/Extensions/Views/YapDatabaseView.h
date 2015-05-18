@@ -25,12 +25,6 @@
 **/
 @interface YapDatabaseView : YapDatabaseExtension
 
-/* Inherited from YapDatabaseExtension
- 
-@property (nonatomic, strong, readonly) NSString *registeredName;
-
-*/
-
 /**
  * See the wiki for an example of how to initialize a view:
  * https://github.com/yapstudios/YapDatabase/wiki/Views#wiki-initializing_a_view
@@ -72,26 +66,6 @@
                       versionTag:(NSString *)versionTag
                          options:(YapDatabaseViewOptions *)options;
 
-- (id)initWithGroupingBlock:(YapDatabaseViewGroupingBlock)groupingBlock
-          groupingBlockType:(YapDatabaseViewBlockType)groupingBlockType
-               sortingBlock:(YapDatabaseViewSortingBlock)sortingBlock
-           sortingBlockType:(YapDatabaseViewBlockType)sortingBlockType
-__attribute((deprecated("Use method initWithGrouping:sorting: instead")));
-
-- (id)initWithGroupingBlock:(YapDatabaseViewGroupingBlock)groupingBlock
-          groupingBlockType:(YapDatabaseViewBlockType)groupingBlockType
-               sortingBlock:(YapDatabaseViewSortingBlock)sortingBlock
-           sortingBlockType:(YapDatabaseViewBlockType)sortingBlockType
-                 versionTag:(NSString *)versionTag
-__attribute((deprecated("Use method initWithGrouping:sorting:versionTag: instead")));
-
-- (id)initWithGroupingBlock:(YapDatabaseViewGroupingBlock)groupingBlock
-          groupingBlockType:(YapDatabaseViewBlockType)groupingBlockType
-               sortingBlock:(YapDatabaseViewSortingBlock)sortingBlock
-           sortingBlockType:(YapDatabaseViewBlockType)sortingBlockType
-                 versionTag:(NSString *)versionTag
-                    options:(YapDatabaseViewOptions *)options
-__attribute((deprecated("Use method initWithGrouping:sorting:versionTag:options: instead")));
 
 @property (nonatomic, strong, readonly) YapDatabaseViewGroupingBlock groupingBlock;
 @property (nonatomic, strong, readonly) YapDatabaseViewSortingBlock sortingBlock;
@@ -132,5 +106,27 @@ __attribute((deprecated("Use method initWithGrouping:sorting:versionTag:options:
  * The options allow you to specify things like creating an in-memory-only view (non persistent).
 **/
 @property (nonatomic, copy, readonly) YapDatabaseViewOptions *options;
+
+/**
+ * Allows you to fetch the versionTag from a view that was registered during the last app launch.
+ * 
+ * For example, let's say you have a view that sorts contacts.
+ * And you support 2 different sort options:
+ * - First, Last
+ * - Last, First
+ * 
+ * To support this, you use 2 different versionTags:
+ * - "First,Last"
+ * - "Last,First"
+ * 
+ * And you want to ensure that when you first register the view (during app launch),
+ * you choose the same block & versionTag from a previous app launch (if possible).
+ * This prevents the view from enumerating the database & re-populating itself
+ * during registration if the versionTag is different from last time.
+ * 
+ * So you can use this method to fetch the previous versionTag.
+**/
++ (NSString *)previousVersionTagForRegisteredViewName:(NSString *)name
+                                      withTransaction:(YapDatabaseReadTransaction *)transaction;
 
 @end

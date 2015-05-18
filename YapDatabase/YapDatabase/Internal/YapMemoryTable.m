@@ -148,7 +148,7 @@
 				__unsafe_unretained YapMemoryTableValue *prvValue = nil;
 				__unsafe_unretained YapMemoryTableValue *value = [dict objectForKey:key];
 				
-				while (value && value->snapshot >= minSnapshot)
+				while (value && value->snapshot >= (uint64_t)minSnapshot)
 				{
 					if (hasObject == NO)
 						hasObject = (value->object != nil);
@@ -217,7 +217,7 @@
 		{
 			__unsafe_unretained YapMemoryTableValue *value = [dict objectForKey:key];
 			
-			if (value && value->snapshot == snapshot)
+			if (value && value->snapshot == (uint64_t)snapshot)
 			{
 				if (value->olderValue == nil)
 				{
@@ -282,7 +282,7 @@
 		
 		[table->dict enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
 			
-			__unsafe_unretained YapMemoryTableValue *value = [table->dict objectForKey:key];
+			__unsafe_unretained YapMemoryTableValue *value = (YapMemoryTableValue *)obj;
 			while (value)
 			{
 				if (value->snapshot <= snapshot)
@@ -313,7 +313,7 @@
 		
 		[table->dict enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
 			
-			__unsafe_unretained YapMemoryTableValue *value = [table->dict objectForKey:key];
+			__unsafe_unretained YapMemoryTableValue *value = (YapMemoryTableValue *)obj;
 			while (value)
 			{
 				if (value->snapshot <= snapshot)

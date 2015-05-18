@@ -29,10 +29,6 @@
   static const int ydbLogLevel = YDB_LOG_LEVEL_WARN;
 #endif
 
-static NSString *const ExtKey_classVersion       = @"classVersion";
-static NSString *const ExtKey_versionTag         = @"versionTag";
-static NSString *const ExtKey_version_deprecated = @"version";
-
 /**
  * The view is tasked with storing ordered arrays of keys.
  * In doing so, it splits the array into "pages" of keys,
@@ -42,41 +38,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 **/
 #define YAP_DATABASE_VIEW_MAX_PAGE_SIZE 50
 
-/**
- * ARCHITECTURE OVERVIEW:
- *
- * A YapDatabaseView allows one to store a ordered array of collection/key tuples.
- * Furthermore, groups are supported, which means there may be multiple ordered arrays of tuples, one per group.
- *
- * Conceptually this is a very simple concept.
- * But obviously there are memory and performance requirements that add complexity.
- *
- * The view creates two database tables:
- *
- * view_name_key:
- * - collection (string) : from the database table
- * - key        (string) : from the database table
- * - pageKey    (string) : the primary key in the page table
- *
- * view_name_page:
- * - pageKey  (string, primary key) : a uuid
- * - data     (blob)                : an array of collection/key tuples (the page)
- * - metadata (blob)                : a YapDatabaseViewPageMetadata object
- *
- * For both tables "name" is replaced by the registered name of the view.
- *
- * Thus, given a key, we can quickly identify if the key exists in the view (via the key table).
- * And if so we can use the associated pageKey to figure out the group and index of the key.
- *
- * When we open the view, we read all the metadata objects from the page table into memory.
- * We use the metadata to create the two primary data structures:
- *
- * - group_pagesMetadata_dict (NSMutableDictionary) : key(group), value(array of YapDatabaseViewPageMetadata objects)
- * - pageKey_group_dict       (NSMutableDictionary) : key(pageKey), value(group)
- *
- * Given a group, we can use the group_pages_dict to find the associated array of pages (and metadata for each page).
- * Given a pageKey, we can use the pageKey_group_dict to quickly find the associated group.
-**/
+
 @implementation YapDatabaseViewTransaction
 
 - (id)initWithViewConnection:(YapDatabaseViewConnection *)inViewConnection
@@ -130,12 +92,12 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		
 		NSString *versionTag = [viewConnection->view versionTag]; // MUST get init value from view
 		
-		[self setStringValue:versionTag forExtensionKey:ExtKey_versionTag persistent:NO];
+		[self setStringValue:versionTag forExtensionKey:ext_key_versionTag persistent:NO];
 		
 		// If there was a previously registered persistent view with this name,
 		// then we should drop those tables from the database.
 		
-		BOOL dropPersistentTables = [self getIntValue:NULL forExtensionKey:ExtKey_classVersion persistent:YES];
+		BOOL dropPersistentTables = [self getIntValue:NULL forExtensionKey:ext_key_classVersion persistent:YES];
 		if (dropPersistentTables)
 		{
 			[[viewConnection->view class]
@@ -163,7 +125,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		
 		int oldClassVersion = 0;
 		BOOL hasOldClassVersion = [self getIntValue:&oldClassVersion
-		                            forExtensionKey:ExtKey_classVersion persistent:YES];
+		                            forExtensionKey:ext_key_classVersion persistent:YES];
 		
 		if (!hasOldClassVersion)
 		{
@@ -203,13 +165,13 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			// Check user-supplied config version.
 			// We may need to re-populate the database if the groupingBlock or sortingBlock changed.
 			
-			oldVersionTag = [self stringValueForExtensionKey:ExtKey_versionTag persistent:YES];
+			oldVersionTag = [self stringValueForExtensionKey:ext_key_versionTag persistent:YES];
 			
 			if (oldVersionTag == nil)
 			{
 				int oldVersion_deprecated = 0;
 				hasOldVersion_deprecated = [self getIntValue:&oldVersion_deprecated
-				                             forExtensionKey:ExtKey_version_deprecated persistent:YES];
+				                             forExtensionKey:ext_key_version_deprecated persistent:YES];
 				
 				if (hasOldVersion_deprecated)
 				{
@@ -233,17 +195,17 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		// Update yap2 table values (if needed)
 		
 		if (!hasOldClassVersion || (oldClassVersion != classVersion)) {
-			[self setIntValue:classVersion forExtensionKey:ExtKey_classVersion persistent:YES];
+			[self setIntValue:classVersion forExtensionKey:ext_key_classVersion persistent:YES];
 		}
 		
 		if (hasOldVersion_deprecated)
 		{
-			[self removeValueForExtensionKey:ExtKey_version_deprecated persistent:YES];
-			[self setStringValue:versionTag forExtensionKey:ExtKey_versionTag persistent:YES];
+			[self removeValueForExtensionKey:ext_key_version_deprecated persistent:YES];
+			[self setStringValue:versionTag forExtensionKey:ext_key_versionTag persistent:YES];
 		}
 		else if (![oldVersionTag isEqualToString:versionTag])
 		{
-			[self setStringValue:versionTag forExtensionKey:ExtKey_versionTag persistent:YES];
+			[self setStringValue:versionTag forExtensionKey:ext_key_versionTag persistent:YES];
 		}
 		
 		return YES;
@@ -316,6 +278,10 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		NSString *string = [NSString stringWithFormat:
 			@"SELECT \"pageKey\", \"group\", \"prevPageKey\", \"count\" FROM \"%@\";", [self pageTableName]];
 		
+		int const column_idx_pageKey     = SQLITE_COLUMN_START + 0;
+		int const column_idx_group       = SQLITE_COLUMN_START + 1;
+		int const column_idx_prevPageKey = SQLITE_COLUMN_START + 2;
+		int const column_idx_count       = SQLITE_COLUMN_START + 3;
 		
 		sqlite3_stmt *statement = NULL;
 		
@@ -333,23 +299,24 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		{
 			stepCount++;
 			
-			const unsigned char *text0 = sqlite3_column_text(statement, 0);
-			int textSize0 = sqlite3_column_bytes(statement, 0);
-			
-			const unsigned char *text1 = sqlite3_column_text(statement, 1);
-			int textSize1 = sqlite3_column_bytes(statement, 1);
-			
-			const unsigned char *text2 = sqlite3_column_text(statement, 2);
-			int textSize2 = sqlite3_column_bytes(statement, 2);
-			
-			int count = sqlite3_column_int(statement, 3);
+			const unsigned char *text0 = sqlite3_column_text(statement, column_idx_pageKey);
+			int textSize0 = sqlite3_column_bytes(statement, column_idx_pageKey);
 			
 			NSString *pageKey = [[NSString alloc] initWithBytes:text0 length:textSize0 encoding:NSUTF8StringEncoding];
+			
+			const unsigned char *text1 = sqlite3_column_text(statement, column_idx_group);
+			int textSize1 = sqlite3_column_bytes(statement, column_idx_group);
+			
 			NSString *group   = [[NSString alloc] initWithBytes:text1 length:textSize1 encoding:NSUTF8StringEncoding];
+			
+			const unsigned char *text2 = sqlite3_column_text(statement, column_idx_prevPageKey);
+			int textSize2 = sqlite3_column_bytes(statement, column_idx_prevPageKey);
 			
 			NSString *prevPageKey = nil;
 			if (textSize2 > 0)
 				prevPageKey = [[NSString alloc] initWithBytes:text2 length:textSize2 encoding:NSUTF8StringEncoding];
+			
+			int count = sqlite3_column_int(statement, column_idx_count);
 			
 			if (count >= 0)
 			{
@@ -402,7 +369,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	}
 	else // if (isNonPersistentView)
 	{
-		[pageMetadataTableTransaction enumerateKeysAndObjectsWithBlock:^(id key, id obj, BOOL *stop) {
+		[pageMetadataTableTransaction enumerateKeysAndObjectsWithBlock:^(id __unused key, id obj, BOOL __unused *stop) {
 			
 			YapDatabaseViewPageMetadata *pageMetadata = [(YapDatabaseViewPageMetadata *)obj copy];
 			
@@ -441,7 +408,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		
 		// Enumerate over each group
 		
-		[groupOrderDict enumerateKeysAndObjectsUsingBlock:^(id _group, id _orderDict, BOOL *stop) {
+		[groupOrderDict enumerateKeysAndObjectsUsingBlock:^(id _group, id _orderDict, BOOL __unused *stop) {
 			
 			__unsafe_unretained NSString *group = (NSString *)_group;
 			__unsafe_unretained NSMutableDictionary *orderDict = (NSMutableDictionary *)_orderDict;
@@ -698,7 +665,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	
 	if (groupingBlockType == YapDatabaseViewBlockTypeWithKey)
 	{
-		getGroup = ^(NSString *collection, NSString *key, id object, id metadata){
+		getGroup = ^(NSString *collection, NSString *key, id __unused object, id __unused metadata){
 			
 			__unsafe_unretained YapDatabaseViewGroupingWithKeyBlock groupingBlock =
 		        (YapDatabaseViewGroupingWithKeyBlock)groupingBlock_generic;
@@ -708,7 +675,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	}
 	else if (groupingBlockType == YapDatabaseViewBlockTypeWithObject)
 	{
-		getGroup = ^(NSString *collection, NSString *key, id object, id metadata){
+		getGroup = ^(NSString *collection, NSString *key, id object, id __unused metadata){
 			
 			__unsafe_unretained YapDatabaseViewGroupingWithObjectBlock groupingBlock =
 		        (YapDatabaseViewGroupingWithObjectBlock)groupingBlock_generic;
@@ -718,7 +685,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	}
 	else if (groupingBlockType == YapDatabaseViewBlockTypeWithMetadata)
 	{
-		getGroup = ^(NSString *collection, NSString *key, id object, id metadata){
+		getGroup = ^(NSString *collection, NSString *key, id __unused object, id metadata){
 			
 			__unsafe_unretained YapDatabaseViewGroupingWithMetadataBlock groupingBlock =
 		        (YapDatabaseViewGroupingWithMetadataBlock)groupingBlock_generic;
@@ -744,7 +711,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		if (groupingNeedsObject || groupingNeedsMetadata)
 		{
 			void (^block)(int64_t rowid, NSString *collection, NSString *key, id object, id metadata, BOOL *stop);
-			block = ^(int64_t rowid, NSString *collection, NSString *key, id object, id metadata, BOOL *stop){
+			block = ^(int64_t rowid, NSString *collection, NSString *key, id object, id metadata, BOOL __unused *stop){
 				
 				NSString *group = getGroup(collection, key, object, metadata);
 				if (group)
@@ -762,7 +729,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			YapWhitelistBlacklist *allowedCollections = viewConnection->view->options.allowedCollections;
 			if (allowedCollections)
 			{
-				[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL *outerStop) {
+				[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL *__unused outerStop) {
 					
 					if ([allowedCollections isAllowed:collection]) {
 						[databaseTransaction _enumerateRowsInCollections:@[ collection ] usingBlock:block];
@@ -782,14 +749,14 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			__block NSString *group = nil;
 			
 			BOOL (^filter)(int64_t rowid, NSString *collection, NSString *key);
-			filter = ^BOOL(int64_t rowid, NSString *collection, NSString *key) {
+			filter = ^BOOL(int64_t __unused rowid, NSString *collection, NSString *key) {
 				
 				group = getGroup(collection, key, nil, nil);
 				return (group != nil);
 			};
 			
 			void (^block)(int64_t rowid, NSString *collection, NSString *key, id object, id metadata, BOOL *stop);
-			block = ^(int64_t rowid, NSString *collection, NSString *key, id object, id metadata, BOOL *stop){
+			block = ^(int64_t rowid, NSString *collection, NSString *key, id object, id metadata, BOOL __unused *stop){
 				
 				YapCollectionKey *collectionKey = [[YapCollectionKey alloc] initWithCollection:collection key:key];
 					
@@ -803,7 +770,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			YapWhitelistBlacklist *allowedCollections = viewConnection->view->options.allowedCollections;
 			if (allowedCollections)
 			{
-				[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL *stop) {
+				[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL __unused *stop) {
 					
 					if ([allowedCollections isAllowed:collection])
 					{
@@ -824,7 +791,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		if (groupingNeedsObject)
 		{
 			void (^block)(int64_t rowid, NSString *collection, NSString *key, id object, BOOL *stop);
-			block = ^(int64_t rowid, NSString *collection, NSString *key, id object, BOOL *stop){
+			block = ^(int64_t rowid, NSString *collection, NSString *key, id object, BOOL __unused *stop){
 				
 				NSString *group = getGroup(collection, key, object, nil);
 				if (group)
@@ -842,7 +809,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			YapWhitelistBlacklist *allowedCollections = viewConnection->view->options.allowedCollections;
 			if (allowedCollections)
 			{
-				[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL *stop) {
+				[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL __unused *stop) {
 					
 					if ([allowedCollections isAllowed:collection])
 					{
@@ -864,14 +831,14 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			__block NSString *group = nil;
 			
 			BOOL (^filter)(int64_t rowid, NSString *collection, NSString *key);
-			filter = ^BOOL(int64_t rowid, NSString *collection, NSString *key) {
+			filter = ^BOOL(int64_t __unused rowid, NSString *collection, NSString *key) {
 				
 				group = getGroup(collection, key, nil, nil);
 				return (group != nil);
 			};
 			
 			void (^block)(int64_t rowid, NSString *collection, NSString *key, id object, BOOL *stop);
-			block = ^(int64_t rowid, NSString *collection, NSString *key, id object, BOOL *stop){
+			block = ^(int64_t rowid, NSString *collection, NSString *key, id object, BOOL __unused *stop){
 				
 				YapCollectionKey *collectionKey = [[YapCollectionKey alloc] initWithCollection:collection key:key];
 				
@@ -885,7 +852,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			YapWhitelistBlacklist *allowedCollections = viewConnection->view->options.allowedCollections;
 			if (allowedCollections)
 			{
-				[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL *stop) {
+				[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL __unused *stop) {
 					
 					if ([allowedCollections isAllowed:collection])
 					{
@@ -906,7 +873,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		if (groupingNeedsMetadata)
 		{
 			void (^block)(int64_t rowid, NSString *collection, NSString *key, id metadata, BOOL *stop);
-			block = ^(int64_t rowid, NSString *collection, NSString *key, id metadata, BOOL *stop){
+			block = ^(int64_t rowid, NSString *collection, NSString *key, id metadata, BOOL __unused *stop){
 				
 				NSString *group = getGroup(collection, key, nil, metadata);
 				if (group)
@@ -925,7 +892,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			YapWhitelistBlacklist *allowedCollections = viewConnection->view->options.allowedCollections;
 			if (allowedCollections)
 			{
-				[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL *stop) {
+				[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL __unused *stop) {
 					
 					if ([allowedCollections isAllowed:collection])
 					{
@@ -947,14 +914,14 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			__block NSString *group = nil;
 			
 			BOOL (^filter)(int64_t rowid, NSString *collection, NSString *key);
-			filter = ^BOOL(int64_t rowid, NSString *collection, NSString *key){
+			filter = ^BOOL(int64_t __unused rowid, NSString *collection, NSString *key){
 				
 				group = getGroup(collection, key, nil, nil);
 				return (group != nil);
 			};
 			
 			void (^block)(int64_t rowid, NSString *collection, NSString *key, id metadata, BOOL *stop);
-			block = ^(int64_t rowid, NSString *collection, NSString *key, id metadata, BOOL *stop){
+			block = ^(int64_t rowid, NSString *collection, NSString *key, id metadata, BOOL __unused *stop){
 				
 				YapCollectionKey *collectionKey = [[YapCollectionKey alloc] initWithCollection:collection key:key];
 				
@@ -968,7 +935,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			YapWhitelistBlacklist *allowedCollections = viewConnection->view->options.allowedCollections;
 			if (allowedCollections)
 			{
-				[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL *stop) {
+				[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL __unused *stop) {
 					
 					if ([allowedCollections isAllowed:collection])
 					{
@@ -987,7 +954,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	else // if (!needsObject && !needsMetadata)
 	{
 		void (^block)(int64_t rowid, NSString *collection, NSString *key, BOOL *stop);
-		block = ^(int64_t rowid, NSString *collection, NSString *key, BOOL *stop){
+		block = ^(int64_t rowid, NSString *collection, NSString *key, BOOL __unused *stop){
 			
 			NSString *group = getGroup(collection, key, nil, nil);
 			if (group)
@@ -1005,7 +972,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		YapWhitelistBlacklist *allowedCollections = viewConnection->view->options.allowedCollections;
 		if (allowedCollections)
 		{
-			[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL *stop) {
+			[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL __unused *stop) {
 				
 				if ([allowedCollections isAllowed:collection])
 				{
@@ -1047,7 +1014,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	//
 	// The changeset mechanism will automatically consolidate all changes to the minimum.
 	
-	[viewConnection->state enumerateGroupsWithBlock:^(NSString *group, BOOL *outerStop) {
+	[viewConnection->state enumerateGroupsWithBlock:^(NSString *group, BOOL __unused *outerStop) {
 		
 		// We must add the changes in reverse order.
 		// Either that, or the change index of each item would have to be zero,
@@ -1055,7 +1022,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		
 		[self enumerateRowidsInGroup:group
 		                 withOptions:NSEnumerationReverse
-		                  usingBlock:^(int64_t rowid, NSUInteger index, BOOL *innerStop)
+		                  usingBlock:^(int64_t rowid, NSUInteger index, BOOL __unused *innerStop)
 		{
 			YapCollectionKey *collectionKey = [databaseTransaction collectionKeyForRowid:rowid];
 			
@@ -1192,13 +1159,16 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		
 		// SELECT "pageKey" FROM "mapTableName" WHERE "rowid" = ? ;
 		
-		sqlite3_bind_int64(statement, 1, rowid);
+		int const column_idx_pageKey = SQLITE_COLUMN_START;
+		int const bind_idx_rowid     = SQLITE_BIND_START;
+		
+		sqlite3_bind_int64(statement, bind_idx_rowid, rowid);
 		
 		int status = sqlite3_step(statement);
 		if (status == SQLITE_ROW)
 		{
-			const unsigned char *text = sqlite3_column_text(statement, 0);
-			int textSize = sqlite3_column_bytes(statement, 0);
+			const unsigned char *text = sqlite3_column_text(statement, column_idx_pageKey);
+			int textSize = sqlite3_column_bytes(statement, column_idx_pageKey);
 			
 			pageKey = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 		}
@@ -1331,6 +1301,9 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			
 			// SELECT "rowid", "pageKey" FROM "mapTableName" WHERE "rowid" IN (?, ?, ...);
 			
+			int const column_idx_rowid   = SQLITE_COLUMN_START + 0;
+			int const column_idx_pageKey = SQLITE_COLUMN_START + 1;
+			
 			NSUInteger capacity = 50 + (count * 3);
 			NSMutableString *query = [NSMutableString stringWithCapacity:capacity];
 			
@@ -1365,17 +1338,17 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			{
 				int64_t rowid = [[inRowids objectAtIndex:i] longLongValue];
 				
-				sqlite3_bind_int64(statement, (int)(i + 1), rowid);
+				sqlite3_bind_int64(statement, (int)(SQLITE_BIND_START + i), rowid);
 			}
 			
 			while ((status = sqlite3_step(statement)) == SQLITE_ROW)
 			{
 				// Extract rowid & pageKey from row
 				
-				int64_t rowid = sqlite3_column_int64(statement, 0);
+				int64_t rowid = sqlite3_column_int64(statement, column_idx_rowid);
 				
-				const unsigned char *text = sqlite3_column_text(statement, 1);
-				int textSize = sqlite3_column_bytes(statement, 1);
+				const unsigned char *text = sqlite3_column_text(statement, column_idx_pageKey);
+				int textSize = sqlite3_column_bytes(statement, column_idx_pageKey);
 				
 				NSNumber *rowidNumber = @(rowid);
 				NSString *pageKey = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
@@ -1466,16 +1439,19 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		if (statement == NULL)
 			return nil;
 		
-		// SELECT data FROM 'pageTableName' WHERE pageKey = ? ;
+		// SELECT "data" FROM 'pageTableName' WHERE pageKey = ? ;
+		
+		int const column_idx_data  = SQLITE_COLUMN_START;
+		int const bind_idx_pageKey = SQLITE_BIND_START;
 		
 		YapDatabaseString _pageKey; MakeYapDatabaseString(&_pageKey, pageKey);
-		sqlite3_bind_text(statement, 1, _pageKey.str, _pageKey.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_idx_pageKey, _pageKey.str, _pageKey.length, SQLITE_STATIC);
 		
 		int status = sqlite3_step(statement);
 		if (status == SQLITE_ROW)
 		{
-			const void *blob = sqlite3_column_blob(statement, 0);
-			int blobSize = sqlite3_column_bytes(statement, 0);
+			const void *blob = sqlite3_column_blob(statement, column_idx_data);
+			int blobSize = sqlite3_column_bytes(statement, column_idx_data);
 			
 			NSData *data = [[NSData alloc] initWithBytesNoCopy:(void *)blob length:blobSize freeWhenDone:NO];
 			
@@ -1580,7 +1556,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	__block BOOL found = NO;
 	
 	[pagesMetadataForGroup enumerateObjectsWithOptions:NSEnumerationReverse
-	                                        usingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+	                                        usingBlock:^(id obj, NSUInteger __unused idx, BOOL *stop) {
 												
 		__unsafe_unretained YapDatabaseViewPageMetadata *pageMetadata = (YapDatabaseViewPageMetadata *)obj;
 		
@@ -2424,7 +2400,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		
 		// Mark all rowids for deletion
 		
-		[page enumerateRowidsUsingBlock:^(int64_t rowid, NSUInteger idx, BOOL *stop) {
+		[page enumerateRowidsUsingBlock:^(int64_t rowid, NSUInteger __unused idx, BOOL __unused *stop) {
 			
 			[removedRowids addObject:@(rowid)];
 			
@@ -2504,7 +2480,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		[pageMetadataTableTransaction removeAllObjects];
 	}
 	
-	[viewConnection->state enumerateGroupsWithBlock:^(NSString *group, BOOL *stop) {
+	[viewConnection->state enumerateGroupsWithBlock:^(NSString *group, BOOL __unused *stop) {
 		
 		if (!isRepopulate) {
 			[viewConnection->changes addObject:[YapDatabaseViewSectionChange resetGroup:group]];
@@ -2598,7 +2574,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 				
 				[prevPage enumerateRowidsWithOptions:0
 				                               range:prevPageRange
-				                          usingBlock:^(int64_t rowid, NSUInteger index, BOOL *stop) {
+				                          usingBlock:^(int64_t rowid, NSUInteger __unused index, BOOL __unused *stop) {
 					
 					NSNumber *number = @(rowid);
 					
@@ -2648,7 +2624,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 				
 				[nextPage enumerateRowidsWithOptions:0
 				                               range:nextPageRange
-				                          usingBlock:^(int64_t rowid, NSUInteger index, BOOL *stop) {
+				                          usingBlock:^(int64_t rowid, NSUInteger __unused index, BOOL __unused *stop) {
 					
 					NSNumber *number = @(rowid);
 					
@@ -2713,7 +2689,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		
 		// Mark rowid mappings as dirty
 		
-		[newPage enumerateRowidsUsingBlock:^(int64_t rowid, NSUInteger idx, BOOL *stop) {
+		[newPage enumerateRowidsUsingBlock:^(int64_t rowid, NSUInteger __unused idx, BOOL __unused *stop) {
 			
 			NSNumber *number = @(rowid);
 			
@@ -2724,7 +2700,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	} // end while (pageMetadata->count > maxPageSize)
 }
 
-- (void)dropEmptyPage:(YapDatabaseViewPage *)page withPageKey:(NSString *)pageKey
+- (void)dropEmptyPage:(YapDatabaseViewPage __unused *)page withPageKey:(NSString *)pageKey
 {
 	YDBLogAutoTrace();
 	
@@ -2870,7 +2846,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		//
 		// Write dirty pages to table (along with associated dirty metadata)
 	
-		[viewConnection->dirtyPages enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+		[viewConnection->dirtyPages enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL __unused *stop) {
 			
 			__unsafe_unretained NSString *pageKey = (NSString *)key;
 			__unsafe_unretained YapDatabaseViewPage *page = (YapDatabaseViewPage *)obj;
@@ -2917,11 +2893,13 @@ static NSString *const ExtKey_version_deprecated = @"version";
 				
 				// DELETE FROM "pageTableName" WHERE "pageKey" = ?;
 				
+				int const bind_idx_pageKey = SQLITE_BIND_START;
+				
 				YDBLogVerbose(@"DELETE FROM '%@' WHERE 'pageKey' = ?;\n"
 				              @" - pageKey: %@", [self pageTableName], pageKey);
 				
 				YapDatabaseString _pageKey; MakeYapDatabaseString(&_pageKey, pageKey);
-				sqlite3_bind_text(statement, 1, _pageKey.str, _pageKey.length, SQLITE_STATIC);
+				sqlite3_bind_text(statement, bind_idx_pageKey, _pageKey.str, _pageKey.length, SQLITE_STATIC);
 				
 				int status = sqlite3_step(statement);
 				if (status != SQLITE_DONE)
@@ -2947,6 +2925,12 @@ static NSString *const ExtKey_version_deprecated = @"version";
 				// INSERT INTO "pageTableName"
 				//   ("pageKey", "group", "prevPageKey", "count", "data") VALUES (?, ?, ?, ?, ?);
 				
+				int const bind_idx_pageKey     = SQLITE_BIND_START + 0;
+				int const bind_idx_group       = SQLITE_BIND_START + 1;
+				int const bind_idx_prevPageKey = SQLITE_BIND_START + 2;
+				int const bind_idx_count       = SQLITE_BIND_START + 3;
+				int const bind_idx_data        = SQLITE_BIND_START + 4;
+				
 				YDBLogVerbose(@"INSERT INTO '%@'"
 				              @" ('pageKey', 'group', 'prevPageKey', 'count', 'data') VALUES (?,?,?,?,?);\n"
 				              @" - pageKey   : %@\n"
@@ -2956,20 +2940,21 @@ static NSString *const ExtKey_version_deprecated = @"version";
 				              pageMetadata->group, pageMetadata->prevPageKey, (int)pageMetadata->count);
 				
 				YapDatabaseString _pageKey; MakeYapDatabaseString(&_pageKey, pageKey);
-				sqlite3_bind_text(statement, 1, _pageKey.str, _pageKey.length, SQLITE_STATIC);
+				sqlite3_bind_text(statement, bind_idx_pageKey, _pageKey.str, _pageKey.length, SQLITE_STATIC);
 				
 				YapDatabaseString _group; MakeYapDatabaseString(&_group, pageMetadata->group);
-				sqlite3_bind_text(statement, 2, _group.str, _group.length, SQLITE_STATIC);
+				sqlite3_bind_text(statement, bind_idx_group, _group.str, _group.length, SQLITE_STATIC);
 				
 				YapDatabaseString _prevPageKey; MakeYapDatabaseString(&_prevPageKey, pageMetadata->prevPageKey);
 				if (pageMetadata->prevPageKey) {
-					sqlite3_bind_text(statement, 3, _prevPageKey.str, _prevPageKey.length, SQLITE_STATIC);
+					sqlite3_bind_text(statement, bind_idx_prevPageKey,
+					                  _prevPageKey.str, _prevPageKey.length, SQLITE_STATIC);
 				}
 				
-				sqlite3_bind_int(statement, 4, (int)(pageMetadata->count));
+				sqlite3_bind_int(statement, bind_idx_count, (int)(pageMetadata->count));
 				
 				__attribute__((objc_precise_lifetime)) NSData *rawData = [self serializePage:page];
-				sqlite3_bind_blob(statement, 5, rawData.bytes, (int)rawData.length, SQLITE_STATIC);
+				sqlite3_bind_blob(statement, bind_idx_data, rawData.bytes, (int)rawData.length, SQLITE_STATIC);
 				
 				int status = sqlite3_step(statement);
 				if (status != SQLITE_DONE)
@@ -2996,6 +2981,11 @@ static NSString *const ExtKey_version_deprecated = @"version";
 				
 				// UPDATE "pageTableName" SET "prevPageKey" = ?, "count" = ?, "data" = ? WHERE "pageKey" = ?;
 				
+				int const bind_idx_prevPageKey = SQLITE_BIND_START + 0;
+				int const bind_idx_count       = SQLITE_BIND_START + 1;
+				int const bind_idx_data        = SQLITE_BIND_START + 2;
+				int const bind_idx_pageKey     = SQLITE_BIND_START + 3;
+				
 				YDBLogVerbose(@"UPDATE '%@' SET 'prevPageKey' = ?, 'count' = ?, 'data' = ? WHERE 'pageKey' = ?;\n"
 				              @" - pageKey    : %@\n"
 				              @" - prevPageKey: %@\n"
@@ -3004,16 +2994,17 @@ static NSString *const ExtKey_version_deprecated = @"version";
 				
 				YapDatabaseString _prevPageKey; MakeYapDatabaseString(&_prevPageKey, pageMetadata->prevPageKey);
 				if (pageMetadata->prevPageKey) {
-					sqlite3_bind_text(statement, 1, _prevPageKey.str, _prevPageKey.length, SQLITE_STATIC);
+					sqlite3_bind_text(statement, bind_idx_prevPageKey,
+					                  _prevPageKey.str, _prevPageKey.length, SQLITE_STATIC);
 				}
 				
-				sqlite3_bind_int(statement, 2, (int)(pageMetadata->count));
+				sqlite3_bind_int(statement, bind_idx_count, (int)(pageMetadata->count));
 				
 				__attribute__((objc_precise_lifetime)) NSData *rawData = [self serializePage:page];
-				sqlite3_bind_blob(statement, 3, rawData.bytes, (int)rawData.length, SQLITE_STATIC);
+				sqlite3_bind_blob(statement, bind_idx_data, rawData.bytes, (int)rawData.length, SQLITE_STATIC);
 				
 				YapDatabaseString _pageKey; MakeYapDatabaseString(&_pageKey, pageKey);
-				sqlite3_bind_text(statement, 4, _pageKey.str, _pageKey.length, SQLITE_STATIC);
+				sqlite3_bind_text(statement, bind_idx_pageKey, _pageKey.str, _pageKey.length, SQLITE_STATIC);
 				
 				int status = sqlite3_step(statement);
 				if (status != SQLITE_DONE)
@@ -3039,17 +3030,21 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			
 				// UPDATE "pageTableName" SET "count" = ?, "data" = ? WHERE "pageKey" = ?;
 				
+				int const bind_idx_count   = SQLITE_BIND_START + 0;
+				int const bind_idx_data    = SQLITE_BIND_START + 1;
+				int const bind_idx_pageKey = SQLITE_BIND_START + 2;
+				
 				YDBLogVerbose(@"UPDATE '%@' SET 'count' = ?, 'data' = ? WHERE 'pageKey' = ?;\n"
 				              @" - pageKey: %@\n"
 				              @" - count  : %d", [self pageTableName], pageKey, (int)(pageMetadata->count));
 				
-				sqlite3_bind_int(statement, 1, (int)[page count]);
+				sqlite3_bind_int(statement, bind_idx_count, (int)[page count]);
 				
 				__attribute__((objc_precise_lifetime)) NSData *rawData = [self serializePage:page];
-				sqlite3_bind_blob(statement, 2, rawData.bytes, (int)rawData.length, SQLITE_STATIC);
+				sqlite3_bind_blob(statement, bind_idx_data, rawData.bytes, (int)rawData.length, SQLITE_STATIC);
 				
 				YapDatabaseString _pageKey; MakeYapDatabaseString(&_pageKey, pageKey);
-				sqlite3_bind_text(statement, 3, _pageKey.str, _pageKey.length, SQLITE_STATIC);
+				sqlite3_bind_text(statement, bind_idx_pageKey, _pageKey.str, _pageKey.length, SQLITE_STATIC);
 				
 				int status = sqlite3_step(statement);
 				if (status != SQLITE_DONE)
@@ -3091,17 +3086,21 @@ static NSString *const ExtKey_version_deprecated = @"version";
 				
 			// UPDATE "pageTableName" SET "prevPageKey" = ? WHERE "pageKey" = ?;
 			
+			int const bind_idx_prevPageKey = SQLITE_BIND_START + 0;
+			int const bind_idx_pageKey     = SQLITE_BIND_START + 1;
+			
 			YDBLogVerbose(@"UPDATE '%@' SET 'prevPageKey' = ? WHERE 'pageKey' = ?;\n"
 			              @" - pageKey    : %@\n"
 			              @" - prevPageKey: %@", [self pageTableName], pageKey, pageMetadata->prevPageKey);
 			
 			YapDatabaseString _prevPageKey; MakeYapDatabaseString(&_prevPageKey, pageMetadata->prevPageKey);
 			if (pageMetadata->prevPageKey) {
-				sqlite3_bind_text(statement, 1, _prevPageKey.str, _prevPageKey.length, SQLITE_STATIC);
+				sqlite3_bind_text(statement, bind_idx_prevPageKey,
+				                  _prevPageKey.str, _prevPageKey.length, SQLITE_STATIC);
 			}
 			
 			YapDatabaseString _pageKey; MakeYapDatabaseString(&_pageKey, pageKey);
-			sqlite3_bind_text(statement, 2, _pageKey.str, _pageKey.length, SQLITE_STATIC);
+			sqlite3_bind_text(statement, bind_idx_pageKey, _pageKey.str, _pageKey.length, SQLITE_STATIC);
 			
 			int status = sqlite3_step(statement);
 			if (status != SQLITE_DONE)
@@ -3137,10 +3136,12 @@ static NSString *const ExtKey_version_deprecated = @"version";
 				
 				// DELETE FROM "mapTableName" WHERE "rowid" = ?;
 				
+				int const bind_idx_rowid = SQLITE_BIND_START;
+				
 				YDBLogVerbose(@"DELETE FROM '%@' WHERE 'rowid' = ?;\n"
 				              @" - rowid : %lld\n", [self mapTableName], rowid);
 				
-				sqlite3_bind_int64(statement, 1, rowid);
+				sqlite3_bind_int64(statement, bind_idx_rowid, rowid);
 				
 				int status = sqlite3_step(statement);
 				if (status != SQLITE_DONE)
@@ -3164,14 +3165,17 @@ static NSString *const ExtKey_version_deprecated = @"version";
 				
 				// INSERT OR REPLACE INTO "mapTableName" ("rowid", "pageKey") VALUES (?, ?);
 				
+				int const bind_idx_rowid   = SQLITE_BIND_START + 0;
+				int const bind_idx_pageKey = SQLITE_BIND_START + 1;
+				
 				YDBLogVerbose(@"INSERT OR REPLACE INTO '%@' ('rowid', 'pageKey') VALUES (?, ?);\n"
 				              @" - rowid  : %lld\n"
 				              @" - pageKey: %@", [self mapTableName], rowid, pageKey);
 				
-				sqlite3_bind_int64(statement, 1, rowid);
+				sqlite3_bind_int64(statement, bind_idx_rowid, rowid);
 				
 				YapDatabaseString _pageKey; MakeYapDatabaseString(&_pageKey, pageKey);
-				sqlite3_bind_text(statement, 2, _pageKey.str, _pageKey.length, SQLITE_STATIC);
+				sqlite3_bind_text(statement, bind_idx_pageKey, _pageKey.str, _pageKey.length, SQLITE_STATIC);
 				
 				int status = sqlite3_step(statement);
 				if (status != SQLITE_DONE)
@@ -3201,7 +3205,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		{
 			[pageTableTransaction modifyWithBlock:^{ @autoreleasepool {
 				
-				[viewConnection->dirtyPages enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+				[viewConnection->dirtyPages enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL __unused *stop) {
 					
 					__unsafe_unretained NSString *pageKey = (NSString *)key;
 					__unsafe_unretained YapDatabaseViewPage *page = (YapDatabaseViewPage *)obj;
@@ -3226,7 +3230,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		{
 			[pageMetadataTableTransaction modifyWithBlock:^{ @autoreleasepool {
 				
-				[viewConnection->dirtyPages enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+				[viewConnection->dirtyPages enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL __unused *stop) {
 					
 					__unsafe_unretained NSString *pageKey = (NSString *)key;
 					__unsafe_unretained YapDatabaseViewPage *page = (YapDatabaseViewPage *)obj;
@@ -3265,7 +3269,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 					}
 				}];
 				
-				[viewConnection->dirtyLinks enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+				[viewConnection->dirtyLinks enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL __unused *stop) {
 					
 					__unsafe_unretained NSString *pageKey = (NSString *)key;
 					__unsafe_unretained YapDatabaseViewPageMetadata *pageMetadata = (YapDatabaseViewPageMetadata *)obj;
@@ -3291,7 +3295,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		{
 			[mapTableTransaction modifyWithBlock:^{ @autoreleasepool {
 				
-				[viewConnection->dirtyMaps enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+				[viewConnection->dirtyMaps enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL __unused *stop) {
 					
 					__unsafe_unretained NSNumber *rowidNumber = (NSNumber *)key;
 					__unsafe_unretained NSString *pageKey = (NSString *)obj;
@@ -3951,7 +3955,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	// output.key = pageKey
 	// output.value = NSDictionary with keyMappings for page
 	
-	[output enumerateKeysAndObjectsUsingBlock:^(id pageKeyObj, id dictObj, BOOL *stop) {
+	[output enumerateKeysAndObjectsUsingBlock:^(id pageKeyObj, id dictObj, BOOL __unused *stop) {
 		
 		__unsafe_unretained NSString *pageKey = (NSString *)pageKeyObj;
 		__unsafe_unretained NSDictionary *keyMappingsForPage = (NSDictionary *)dictObj;
@@ -3995,7 +3999,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	
 	__block NSUInteger count = 0;
 	
-	[viewConnection->state enumerateWithBlock:^(NSString *group, NSArray *pagesMetadataForGroup, BOOL *stop) {
+	[viewConnection->state enumerateWithBlock:^(NSString __unused *group, NSArray *pagesMetadataForGroup, BOOL __unused *stop) {
 		
 		for (YapDatabaseViewPageMetadata *pageMetadata in pagesMetadataForGroup)
 		{
@@ -4017,7 +4021,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	
 	NSMutableArray *allGroups = [NSMutableArray arrayWithCapacity:[viewConnection->state numberOfGroups]];
 	
-	[viewConnection->state enumerateWithBlock:^(NSString *group, NSArray *pagesMetadataForGroup, BOOL *stop) {
+	[viewConnection->state enumerateWithBlock:^(NSString *group, NSArray *pagesMetadataForGroup, BOOL __unused *stop) {
 		
 		for (YapDatabaseViewPageMetadata *pageMetadata in pagesMetadataForGroup)
 		{
@@ -4073,7 +4077,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 {
 	__block NSUInteger count = 0;
 	
-	[viewConnection->state enumerateWithBlock:^(NSString *group, NSArray *pagesMetadataForGroup, BOOL *stop) {
+	[viewConnection->state enumerateWithBlock:^(NSString __unused *group, NSArray *pagesMetadataForGroup, BOOL __unused *stop) {
 		
 		for (YapDatabaseViewPageMetadata *pageMetadata in pagesMetadataForGroup)
 		{
@@ -4110,7 +4114,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 {
 	__block BOOL result = YES;
 	
-	[viewConnection->state enumerateWithBlock:^(NSString *group, NSArray *pagesMetadataForGroup, BOOL *stop) {
+	[viewConnection->state enumerateWithBlock:^(NSString __unused *group, NSArray *pagesMetadataForGroup, BOOL *stop) {
 		
 		for (YapDatabaseViewPageMetadata *pageMetadata in pagesMetadataForGroup)
 		{
@@ -4125,22 +4129,6 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	}];
 	
 	return result;
-}
-
-/**
- * DEPRECATED: Use numberOfItemsInGroup: instead.
-**/
-- (NSUInteger)numberOfKeysInGroup:(NSString *)group
-{
-	return [self numberOfItemsInGroup:group];
-}
-
-/**
- * DEPRECATED: Use numberOfItemsInAllGroups instead.
-**/
-- (NSUInteger)numberOfKeysInAllGroups
-{
-	return [self numberOfItemsInAllGroups];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -4308,7 +4296,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 **/
 - (NSString *)versionTag
 {
-	return [self stringValueForExtensionKey:ExtKey_versionTag persistent:[self isPersistentView]];
+	return [self stringValueForExtensionKey:ext_key_versionTag persistent:[self isPersistentView]];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -4618,14 +4606,14 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	NSArray *pagesMetadataForGroup = [viewConnection->state pagesMetadataForGroup:group];
 	
 	[pagesMetadataForGroup enumerateObjectsWithOptions:options
-	                                        usingBlock:^(id pageMetadataObj, NSUInteger outerIdx, BOOL *outerStop)
+	                                        usingBlock:^(id pageMetadataObj, NSUInteger __unused outerIdx, BOOL *outerStop)
 	{
 		__unsafe_unretained YapDatabaseViewPageMetadata *pageMetadata =
 		    (YapDatabaseViewPageMetadata *)pageMetadataObj;
 		
 		YapDatabaseViewPage *page = [self pageForPageKey:pageMetadata->pageKey];
 		
-		[page enumerateRowidsWithOptions:options usingBlock:^(int64_t rowid, NSUInteger innerIdx, BOOL *innerStop) {
+		[page enumerateRowidsWithOptions:options usingBlock:^(int64_t rowid, NSUInteger __unused innerIdx, BOOL *innerStop) {
 			
 			block(rowid, index, &stop);
 			
@@ -4715,7 +4703,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 		__block BOOL startedRange = NO;
 		
 		[pagesMetadataForGroup enumerateObjectsWithOptions:options
-		                                        usingBlock:^(id pageMetadataObj, NSUInteger pageIndex, BOOL *outerStop)
+		                                        usingBlock:^(id pageMetadataObj, NSUInteger __unused pageIndex, BOOL *outerStop)
 		{
 			__unsafe_unretained YapDatabaseViewPageMetadata *pageMetadata =
 			    (YapDatabaseViewPageMetadata *)pageMetadataObj;
@@ -4791,7 +4779,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 /**
  * Invoked when an item is added to the view.
 **/
-- (void)didInsertRowid:(int64_t)rowid collectionKey:(YapCollectionKey *)collectionKey
+- (void)didInsertRowid:(int64_t __unused)rowid collectionKey:(YapCollectionKey __unused *)collectionKey
 {
 	// Subclasses may override me.
 	// Default implementation does nothing.
@@ -4804,7 +4792,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
  * That is, when an individual item is removed from the view as a single operation.
  * For larger (non-single) remove operations, the other hook methods are used.
 **/
-- (void)didRemoveRowid:(int64_t)rowid collectionKey:(YapCollectionKey *)collectionKey
+- (void)didRemoveRowid:(int64_t __unused)rowid collectionKey:(YapCollectionKey __unused *)collectionKey
 {
 	// Subclasses may override me.
 	// Default implementation does nothing.
@@ -4825,7 +4813,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
  *   But that is ** NOT ** the case here.
  *   So you'll be required to check for this, and split your queries accordingly.
 **/
-- (void)didRemoveRowids:(NSArray *)rowids collectionKeys:(NSArray *)collectionKeys
+- (void)didRemoveRowids:(NSArray __unused *)rowids collectionKeys:(NSArray __unused *)collectionKeys
 {
 	// Subclasses may override me.
 	// Default implementation does nothing.
@@ -5056,7 +5044,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	[self repopulateView];
 	
 	[self setStringValue:newVersionTag
-	     forExtensionKey:ExtKey_versionTag
+	     forExtensionKey:ext_key_versionTag
 	          persistent:[self isPersistentView]];
 	
 	// Notify any extensions dependent upon this one that we repopulated.
@@ -5064,7 +5052,7 @@ static NSString *const ExtKey_version_deprecated = @"version";
 	NSString *registeredName = [self registeredName];
 	NSDictionary *extensionDependencies = databaseTransaction->connection->extensionDependencies;
 	
-	[extensionDependencies enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop){
+	[extensionDependencies enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL __unused *stop){
 		
 		__unsafe_unretained NSString *extName = (NSString *)key;
 		__unsafe_unretained NSSet *extDependencies = (NSSet *)obj;
@@ -5080,22 +5068,6 @@ static NSString *const ExtKey_version_deprecated = @"version";
 			}
 		}
 	}];
-}
-
-/**
- * DEPRECATED
- * Use method setGrouping:sorting:versionTag: instead.
-**/
-- (void)setGroupingBlock:(YapDatabaseViewGroupingBlock)grpBlock
-       groupingBlockType:(YapDatabaseViewBlockType)grpBlockType
-            sortingBlock:(YapDatabaseViewSortingBlock)srtBlock
-        sortingBlockType:(YapDatabaseViewBlockType)srtBlockType
-              versionTag:(NSString *)inVersionTag
-{
-	YapDatabaseViewGrouping *grouping = [YapDatabaseViewGrouping withBlock:grpBlock blockType:grpBlockType];
-	YapDatabaseViewSorting *sorting = [YapDatabaseViewSorting withBlock:srtBlock blockType:srtBlockType];
-	
-	[self setGrouping:grouping sorting:sorting versionTag:inVersionTag];
 }
 
 @end

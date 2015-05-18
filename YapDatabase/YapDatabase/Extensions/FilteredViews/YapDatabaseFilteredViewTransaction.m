@@ -20,11 +20,6 @@
   static const int ydbLogLevel = YDB_LOG_LEVEL_WARN;
 #endif
 
-static NSString *const ExtKey_classVersion   = @"classVersion";
-static NSString *const ExtKey_parentViewName = @"parentViewName";
-static NSString *const ExtKey_tag_deprecated = @"tag";
-static NSString *const ExtKey_versionTag     = @"versionTag";
-
 @implementation YapDatabaseFilteredViewTransaction
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,12 +52,12 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 		
 		NSString *versionTag = [viewConnection->view versionTag]; // MUST get init value from view
 		
-		[self setStringValue:versionTag forExtensionKey:ExtKey_versionTag persistent:NO];
+		[self setStringValue:versionTag forExtensionKey:ext_key_versionTag persistent:NO];
 		
 		// If there was a previously registered persistent view with this name,
 		// then we should drop those tables from the database.
 		
-		BOOL dropPersistentTables = [self getIntValue:NULL forExtensionKey:ExtKey_classVersion persistent:YES];
+		BOOL dropPersistentTables = [self getIntValue:NULL forExtensionKey:ext_key_classVersion persistent:YES];
 		if (dropPersistentTables)
 		{
 			[[viewConnection->view class]
@@ -93,7 +88,7 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 		
 		int oldClassVersion = 0;
 		BOOL hasOldClassVersion = [self getIntValue:&oldClassVersion
-		                            forExtensionKey:ExtKey_classVersion persistent:YES];
+		                            forExtensionKey:ext_key_classVersion persistent:YES];
 		
 		if (!hasOldClassVersion)
 		{
@@ -134,7 +129,7 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 			// Check parentViewName.
 			// Need to re-populate if the parent changed.
 			
-			oldParentViewName = [self stringValueForExtensionKey:ExtKey_parentViewName persistent:YES];
+			oldParentViewName = [self stringValueForExtensionKey:ext_key_parentViewName persistent:YES];
 			
 			if (![oldParentViewName isEqualToString:parentViewName])
 			{
@@ -144,11 +139,11 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 			// Check user-supplied tag.
 			// We may need to re-populate the database if the groupingBlock or sortingBlock changed.
 			
-			oldVersionTag = [self stringValueForExtensionKey:ExtKey_versionTag persistent:YES];
+			oldVersionTag = [self stringValueForExtensionKey:ext_key_versionTag persistent:YES];
 			
 			if (oldVersionTag == nil)
 			{
-				oldTag_deprecated = [self stringValueForExtensionKey:ExtKey_tag_deprecated persistent:YES];
+				oldTag_deprecated = [self stringValueForExtensionKey:ext_key_tag_deprecated persistent:YES];
 				if (oldTag_deprecated)
 				{
 					oldVersionTag = oldTag_deprecated;
@@ -171,21 +166,21 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 		// Update yap2 table values (if needed)
 		
 		if (!hasOldClassVersion || (oldClassVersion != classVersion)) {
-			[self setIntValue:classVersion forExtensionKey:ExtKey_classVersion persistent:YES];
+			[self setIntValue:classVersion forExtensionKey:ext_key_classVersion persistent:YES];
 		}
 		
 		if (![oldParentViewName isEqualToString:parentViewName]) {
-			[self setStringValue:parentViewName forExtensionKey:ExtKey_parentViewName persistent:YES];
+			[self setStringValue:parentViewName forExtensionKey:ext_key_parentViewName persistent:YES];
 		}
 		
 		if (oldTag_deprecated)
 		{
-			[self removeValueForExtensionKey:ExtKey_tag_deprecated persistent:YES];
-			[self setStringValue:versionTag forExtensionKey:ExtKey_versionTag persistent:YES];
+			[self removeValueForExtensionKey:ext_key_tag_deprecated persistent:YES];
+			[self setStringValue:versionTag forExtensionKey:ext_key_versionTag persistent:YES];
 		}
 		else if (![oldVersionTag isEqualToString:versionTag])
 		{
-			[self setStringValue:versionTag forExtensionKey:ExtKey_versionTag persistent:YES];
+			[self setStringValue:versionTag forExtensionKey:ext_key_versionTag persistent:YES];
 		}
 	
 		return YES;
@@ -236,7 +231,7 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 		__unsafe_unretained YapDatabaseViewFilteringWithKeyBlock filterBlock =
 		  (YapDatabaseViewFilteringWithKeyBlock)filteringBlock_generic;
 		
-		InvokeFilterBlock = ^(NSString *group, int64_t rowid, YapCollectionKey *ck){
+		InvokeFilterBlock = ^(NSString *group, int64_t __unused rowid, YapCollectionKey *ck){
 			
 			return filterBlock(group, ck.collection, ck.key);
 		};
@@ -287,7 +282,7 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 		__block NSUInteger filteredIndex = 0;
 		
 		[parentViewTransaction enumerateRowidsInGroup:group
-		                                   usingBlock:^(int64_t rowid, NSUInteger parentIndex, BOOL *stop)
+		                                   usingBlock:^(int64_t rowid, NSUInteger __unused parentIndex, BOOL __unused *stop)
 		{
 			YapCollectionKey *ck = [databaseTransaction collectionKeyForRowid:rowid];
 			
@@ -371,7 +366,7 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 	//
 	// The changeset mechanism will automatically consolidate all changes to the minimum.
 	
-	[viewConnection->state enumerateGroupsWithBlock:^(NSString *group, BOOL *outerStop) {
+	[viewConnection->state enumerateGroupsWithBlock:^(NSString *group, BOOL __unused *outerStop) {
 		
 		// We must add the changes in reverse order.
 		// Either that, or the change index of each item would have to be zero,
@@ -379,7 +374,7 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 		
 		[self enumerateRowidsInGroup:group
 		                 withOptions:NSEnumerationReverse
-		                  usingBlock:^(int64_t rowid, NSUInteger index, BOOL *innerStop)
+		                  usingBlock:^(int64_t rowid, NSUInteger index, BOOL __unused *innerStop)
 		{
 			YapCollectionKey *collectionKey = [databaseTransaction collectionKeyForRowid:rowid];
 			 
@@ -438,7 +433,7 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 		__unsafe_unretained YapDatabaseViewFilteringWithKeyBlock filterBlock =
 		  (YapDatabaseViewFilteringWithKeyBlock)filteringBlock_generic;
 		
-		InvokeFilterBlock = ^(NSString *group, int64_t rowid, YapCollectionKey *ck){
+		InvokeFilterBlock = ^(NSString *group, int64_t __unused rowid, YapCollectionKey *ck){
 			
 			return filterBlock(group, ck.collection, ck.key);
 		};
@@ -498,7 +493,7 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 		__block NSUInteger index = 0;
 		
 		[parentViewTransaction enumerateRowidsInGroup:group
-		                                   usingBlock:^(int64_t rowid, NSUInteger parentIndex, BOOL *stop)
+		                                   usingBlock:^(int64_t rowid, NSUInteger __unused parentIndex, BOOL __unused *stop)
 		{
 			if (existing && ((existingRowid == rowid)))
 			{
@@ -647,7 +642,7 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 		__unsafe_unretained YapDatabaseViewFilteringWithKeyBlock filterBlock =
 		  (YapDatabaseViewFilteringWithKeyBlock)filteringBlock_generic;
 		
-		InvokeFilterBlock = ^(NSString *group, int64_t rowid, YapCollectionKey *ck){
+		InvokeFilterBlock = ^(NSString *group, int64_t __unused rowid, YapCollectionKey *ck){
 			
 			return filterBlock(group, ck.collection, ck.key);
 		};
@@ -703,7 +698,7 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 		__block NSUInteger index = 0;
 		
 		[parentViewTransaction enumerateRowidsInGroup:group
-		                                   usingBlock:^(int64_t rowid, NSUInteger parentIndex, BOOL *stop)
+		                                   usingBlock:^(int64_t rowid, NSUInteger __unused parentIndex, BOOL __unused *stop)
 		{
 			YapCollectionKey *ck = [databaseTransaction collectionKeyForRowid:rowid];
 			
@@ -1342,7 +1337,7 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 	__unsafe_unretained NSString *registeredName = [self registeredName];
 	__unsafe_unretained NSDictionary *extensionDependencies = databaseTransaction->connection->extensionDependencies;
 	
-	[extensionDependencies enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop){
+	[extensionDependencies enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL __unused *stop){
 		
 		__unsafe_unretained NSString *extName = (NSString *)key;
 		__unsafe_unretained NSSet *extDependencies = (NSSet *)obj;
@@ -1367,9 +1362,9 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 
 @implementation YapDatabaseFilteredViewTransaction (ReadWrite)
 
-- (void)setGrouping:(YapDatabaseViewGrouping *)grouping
-            sorting:(YapDatabaseViewSorting *)sorting
-         versionTag:(NSString *)versionTag
+- (void)setGrouping:(YapDatabaseViewGrouping __unused *)grouping
+            sorting:(YapDatabaseViewSorting __unused *)sorting
+         versionTag:(NSString __unused *)versionTag
 {
 	NSString *reason = @"This method is not available for YapDatabaseFilteredView.";
 	
@@ -1412,7 +1407,7 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 	[self repopulateViewDueToFilteringBlockChange];
 	
 	[self setStringValue:newVersionTag
-	     forExtensionKey:ExtKey_versionTag
+	     forExtensionKey:ext_key_versionTag
 	          persistent:[self isPersistentView]];
 	
 	// Notify any extensions dependent upon this one that we repopulated.
@@ -1420,7 +1415,7 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 	NSString *registeredName = [self registeredName];
 	NSDictionary *extensionDependencies = databaseTransaction->connection->extensionDependencies;
 	
-	[extensionDependencies enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop){
+	[extensionDependencies enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL __unused *stop){
 		
 		__unsafe_unretained NSString *extName = (NSString *)key;
 		__unsafe_unretained NSSet *extDependencies = (NSSet *)obj;
@@ -1436,19 +1431,6 @@ static NSString *const ExtKey_versionTag     = @"versionTag";
 			}
 		}
 	}];
-}
-
-/**
- * DEPRECATED
- * Use method setFiltering:versionTag: instead.
-**/
-- (void)setFilteringBlock:(YapDatabaseViewFilteringBlock)inBlock
-       filteringBlockType:(YapDatabaseViewBlockType)inBlockType
-               versionTag:(NSString *)inVersionTag
-{
-	YapDatabaseViewFiltering *filtering = [YapDatabaseViewFiltering withBlock:inBlock blockType:inBlockType];
-	
-	[self setFiltering:filtering versionTag:inVersionTag];
 }
 
 @end

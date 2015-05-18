@@ -25,7 +25,7 @@
 
 + (void)dropTablesForRegisteredName:(NSString *)registeredName
                     withTransaction:(YapDatabaseReadWriteTransaction *)transaction
-                      wasPersistent:(BOOL)wasPersistent
+                      wasPersistent:(BOOL __unused)wasPersistent
 {
 	sqlite3 *db = transaction->connection->db;
 	NSString *tableName = [self tableNameForRegisteredName:registeredName];
@@ -122,51 +122,6 @@
 		options = inOptions ? [inOptions copy] : [[YapDatabaseSecondaryIndexOptions alloc] init];
 	}
 	return self;
-}
-
-/**
- * DEPRECATED
- * Use method initWithSetup:handler: instead.
-**/
-- (id)initWithSetup:(YapDatabaseSecondaryIndexSetup *)inSetup
-              block:(YapDatabaseSecondaryIndexBlock)inBlock
-          blockType:(YapDatabaseSecondaryIndexBlockType)inBlockType
-{
-	YapDatabaseSecondaryIndexHandler *handler =
-	  [YapDatabaseSecondaryIndexHandler withBlock:inBlock blockType:inBlockType];
-	
-	return [self initWithSetup:inSetup handler:handler];
-}
-
-/**
- * DEPRECATED
- * Use method initWithSetup:handler:versionTag: instead.
-**/
-- (id)initWithSetup:(YapDatabaseSecondaryIndexSetup *)inSetup
-              block:(YapDatabaseSecondaryIndexBlock)inBlock
-          blockType:(YapDatabaseSecondaryIndexBlockType)inBlockType
-         versionTag:(NSString *)inVersionTag
-{
-	YapDatabaseSecondaryIndexHandler *handler =
-	  [YapDatabaseSecondaryIndexHandler withBlock:inBlock blockType:inBlockType];
-	
-	return [self initWithSetup:inSetup handler:handler versionTag:inVersionTag];
-}
-
-/**
- * DEPRECATED
- * Use method initWithSetup:handler:versionTag:options: instead.
-**/
-- (id)initWithSetup:(YapDatabaseSecondaryIndexSetup *)inSetup
-              block:(YapDatabaseSecondaryIndexBlock)inBlock
-          blockType:(YapDatabaseSecondaryIndexBlockType)inBlockType
-         versionTag:(NSString *)inVersionTag
-            options:(YapDatabaseSecondaryIndexOptions *)inOptions
-{
-	YapDatabaseSecondaryIndexHandler *handler =
-	  [YapDatabaseSecondaryIndexHandler withBlock:inBlock blockType:inBlockType];
-	
-	return [self initWithSetup:inSetup handler:handler versionTag:inVersionTag options:inOptions];
 }
 
 - (YapDatabaseExtensionConnection *)newConnection:(YapDatabaseConnection *)databaseConnection

@@ -4,21 +4,23 @@
 
 #import "YapDatabaseViewPrivate.h"
 
+
+/**
+ * Keys for yap2 extension configuration table.
+**/
+
+// Defined in YapDatabaseViewPrivate.h
+//
+//static NSString *const ext_key_classVersion = @"classVersion";
+//static NSString *const ext_key_versionTag   = @"versionTag";
+
+static NSString *const ext_key_parentViewName = @"parentViewName";
+
 /**
  * Changeset keys (for changeset notification dictionary)
 **/
 static NSString *const changeset_key_filteringBlock     = @"filteringBlock";
 static NSString *const changeset_key_filteringBlockType = @"filteringBlockType";
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma mark -
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-@interface YapDatabaseViewFiltering ()
-
-+ (instancetype)withBlock:(YapDatabaseViewFilteringBlock)block blockType:(YapDatabaseViewBlockType)blockType;
-
-@end
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark -

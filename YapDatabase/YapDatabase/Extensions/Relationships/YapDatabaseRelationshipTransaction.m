@@ -21,9 +21,9 @@
   static const int ydbLogLevel = YDB_LOG_LEVEL_WARN;
 #endif
 
-static NSString *const ExtKey_classVersion       = @"classVersion";
-static NSString *const ExtKey_versionTag         = @"versionTag";
-static NSString *const ExtKey_version_deprecated = @"version";
+static NSString *const ext_key_classVersion       = @"classVersion";
+static NSString *const ext_key_versionTag         = @"versionTag";
+static NSString *const ext_key_version_deprecated = @"version";
 
 
 NS_INLINE BOOL EdgeMatchesType(YapDatabaseRelationshipEdge *edge, BOOL isManualEdge)
@@ -92,7 +92,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	// Check classVersion (the internal version number of the extension implementation)
 	
 	int oldClassVersion = 0;
-	BOOL hasOldClassVersion = [self getIntValue:&oldClassVersion forExtensionKey:ExtKey_classVersion persistent:YES];
+	BOOL hasOldClassVersion = [self getIntValue:&oldClassVersion forExtensionKey:ext_key_classVersion persistent:YES];
 	
 	int classVersion = YAP_DATABASE_RELATIONSHIP_CLASS_VERSION;
 	
@@ -113,10 +113,10 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		if (![self createTables]) return NO;
 		if (![self populateTables]) return NO;
 		
-		[self setIntValue:classVersion forExtensionKey:ExtKey_classVersion persistent:YES];
+		[self setIntValue:classVersion forExtensionKey:ext_key_classVersion persistent:YES];
 		
 		NSString *versionTag = relationshipConnection->relationship->versionTag;
-		[self setStringValue:versionTag forExtensionKey:ExtKey_versionTag persistent:YES];
+		[self setStringValue:versionTag forExtensionKey:ext_key_versionTag persistent:YES];
 	}
 	else
 	{
@@ -127,14 +127,14 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		NSString *versionTag = relationshipConnection->relationship->versionTag;
 		
-		NSString *oldVersionTag = [self stringValueForExtensionKey:ExtKey_versionTag persistent:YES];
+		NSString *oldVersionTag = [self stringValueForExtensionKey:ext_key_versionTag persistent:YES];
 		
 		BOOL hasOldVersion_deprecated = NO;
 		if (oldVersionTag == nil)
 		{
 			int oldVersion_deprecated = 0;
 			hasOldVersion_deprecated = [self getIntValue:&oldVersion_deprecated
-			                             forExtensionKey:ExtKey_version_deprecated
+			                             forExtensionKey:ext_key_version_deprecated
 			                                  persistent:YES];
 			
 			if (hasOldVersion_deprecated)
@@ -147,15 +147,15 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		{
 			if (![self populateTables]) return NO;
 			
-			[self setStringValue:versionTag forExtensionKey:ExtKey_versionTag persistent:YES];
+			[self setStringValue:versionTag forExtensionKey:ext_key_versionTag persistent:YES];
 			
 			if (hasOldVersion_deprecated)
-				[self removeValueForExtensionKey:ExtKey_version_deprecated persistent:YES];
+				[self removeValueForExtensionKey:ext_key_version_deprecated persistent:YES];
 		}
 		else if (hasOldVersion_deprecated)
 		{
-			[self removeValueForExtensionKey:ExtKey_version_deprecated persistent:YES];
-			[self setStringValue:versionTag forExtensionKey:ExtKey_versionTag persistent:YES];
+			[self removeValueForExtensionKey:ext_key_version_deprecated persistent:YES];
+			[self setStringValue:versionTag forExtensionKey:ext_key_versionTag persistent:YES];
 		}
 	}
 	
@@ -317,12 +317,12 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	
 	if (allowedCollections)
 	{
-		[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL *outerStop) {
+		[databaseTransaction enumerateCollectionsUsingBlock:^(NSString *collection, BOOL __unused *outerStop) {
 			
 			if ([allowedCollections isAllowed:collection])
 			{
 				[databaseTransaction _enumerateKeysAndObjectsInCollection:collection usingBlock:
-				    ^(int64_t rowid, NSString *key, id object, BOOL *innerStop)
+				    ^(int64_t rowid, NSString *key, id object, BOOL __unused *innerStop)
 				{
 					ProcessRow(rowid, collection, key, object);
 				}];
@@ -332,7 +332,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	else
 	{
 		[databaseTransaction _enumerateKeysAndObjectsInAllCollectionsUsingBlock:
-		   	^(int64_t rowid, NSString *collection, NSString *key, id object, BOOL *stop)
+		   	^(int64_t rowid, NSString *collection, NSString *key, id object, BOOL __unused *stop)
 		{
 			ProcessRow(rowid, collection, key, object);
 		}];
@@ -392,7 +392,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	
 	// Find matching protocol edges
 	
-	[relationshipConnection->protocolChanges enumerateKeysAndObjectsUsingBlock:^(id dictKey, id dictObj, BOOL *stop){
+	[relationshipConnection->protocolChanges enumerateKeysAndObjectsUsingBlock:^(id __unused dictKey, id dictObj, BOOL __unused *stop){
 		
 	//	__unsafe_unretained NSString *srcRowidNumber = (NSNumber *)dictKey;
 		__unsafe_unretained NSArray *changedEdgesForSrc = (NSArray *)dictObj;
@@ -534,7 +534,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	}
 	else
 	{
-		[relationshipConnection->manualChanges enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+		[relationshipConnection->manualChanges enumerateKeysAndObjectsUsingBlock:^(id __unused key, id obj, BOOL __unused *stop) {
 			
 		//	__unsafe_unretained NSString *edgeName = (NSString *)key;
 			__unsafe_unretained NSArray *manualChangesMatchingName = (NSArray *)obj;
@@ -600,7 +600,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	
 	// Find matching protocol edges
 	
-	[relationshipConnection->protocolChanges enumerateKeysAndObjectsUsingBlock:^(id dictKey, id dictObj, BOOL *stop){
+	[relationshipConnection->protocolChanges enumerateKeysAndObjectsUsingBlock:^(id __unused dictKey, id dictObj, BOOL __unused *stop){
 		
 	//	__unsafe_unretained NSString *srcRowidNumber = (NSNumber *)dictKey;
 		__unsafe_unretained NSArray *changedEdgesForSrc = (NSArray *)dictObj;
@@ -679,7 +679,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	}
 	else
 	{
-		[relationshipConnection->manualChanges enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop){
+		[relationshipConnection->manualChanges enumerateKeysAndObjectsUsingBlock:^(id __unused key, id obj, BOOL __unused *stop){
 			
 		//	__unsafe_unretained NSString *edgeName = (NSString *)key;
 			__unsafe_unretained NSArray *manualChangesMatchingName = (NSArray *)obj;
@@ -740,7 +740,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	
 	// Find matching protocol edges
 	
-	[relationshipConnection->protocolChanges enumerateKeysAndObjectsUsingBlock:^(id dictKey, id dictObj, BOOL *stop){
+	[relationshipConnection->protocolChanges enumerateKeysAndObjectsUsingBlock:^(id __unused dictKey, id dictObj, BOOL __unused *stop){
 		
 	//	__unsafe_unretained NSString *srcRowidNumber = (NSNumber *)dictKey;
 		__unsafe_unretained NSArray *changedEdgesForSrc = (NSArray *)dictObj;
@@ -789,7 +789,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	}
 	else
 	{
-		[relationshipConnection->manualChanges enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop){
+		[relationshipConnection->manualChanges enumerateKeysAndObjectsUsingBlock:^(id __unused key, id obj, BOOL __unused *stop){
 			
 		//	__unsafe_unretained NSString *edgeName = (NSString *)key;
 			__unsafe_unretained NSArray *manualChangesMatchingName = (NSArray *)obj;
@@ -953,7 +953,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	}
 	else
 	{
-		[relationshipConnection->manualChanges enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+		[relationshipConnection->manualChanges enumerateKeysAndObjectsUsingBlock:^(id __unused key, id obj, BOOL __unused *stop) {
 			
 		//	__unsafe_unretained NSString *edgeName = (NSString *)key;
 			__unsafe_unretained NSArray *manualChangesMatchingName = (NSArray *)obj;
@@ -1084,7 +1084,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	}
 	else
 	{
-		[relationshipConnection->manualChanges enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+		[relationshipConnection->manualChanges enumerateKeysAndObjectsUsingBlock:^(id __unused key, id obj, BOOL __unused *stop) {
 			
 		//	__unsafe_unretained NSString *edgeName = (NSString *)key;
 			__unsafe_unretained NSArray *manualChangesMatchingName = (NSArray *)obj;
@@ -1131,37 +1131,44 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	
 	// SELECT "rowid", "name", "dst", "rules", "manual" FROM "tableName" WHERE "src" = ?;
 	
-	sqlite3_bind_int64(statement, 1, srcRowid);
+	int const column_idx_rowid  = SQLITE_COLUMN_START + 0;
+	int const column_idx_name   = SQLITE_COLUMN_START + 1;
+	int const column_idx_dst    = SQLITE_COLUMN_START + 2;
+	int const column_idx_rules  = SQLITE_COLUMN_START + 3;
+	int const column_idx_manual = SQLITE_COLUMN_START + 4;
+	int const bind_idx_src      = SQLITE_BIND_START;
+	
+	sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
 	
 	int status;
 	while ((status = sqlite3_step(statement)) == SQLITE_ROW)
 	{
-		int64_t edgeRowid = sqlite3_column_int64(statement, 0);
+		int64_t edgeRowid = sqlite3_column_int64(statement, column_idx_rowid);
 		
-		const unsigned char *text = sqlite3_column_text(statement, 1);
-		int textSize = sqlite3_column_bytes(statement, 1);
+		const unsigned char *text = sqlite3_column_text(statement, column_idx_name);
+		int textSize = sqlite3_column_bytes(statement, column_idx_name);
 		
 		NSString *name = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 		
 		int64_t dstRowid = 0;
 		NSString *dstFilePath = nil;
 		
-		int column_type = sqlite3_column_type(statement, 2);
+		int column_type = sqlite3_column_type(statement, column_idx_dst);
 		if (column_type == SQLITE_INTEGER)
 		{
-			dstRowid = sqlite3_column_int64(statement, 2);
+			dstRowid = sqlite3_column_int64(statement, column_idx_dst);
 		}
 		else if (column_type == SQLITE_TEXT)
 		{
-			text = sqlite3_column_text(statement, 2);
-			textSize = sqlite3_column_bytes(statement, 2);
+			text = sqlite3_column_text(statement, column_idx_dst);
+			textSize = sqlite3_column_bytes(statement, column_idx_dst);
 			
 			dstFilePath = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 		}
 		else if (column_type == SQLITE_BLOB && dstFilePathDecryptor)
 		{
-			const void *blob = sqlite3_column_blob(statement, 2);
-			int blobSize = sqlite3_column_bytes(statement, 2);
+			const void *blob = sqlite3_column_blob(statement, column_idx_dst);
+			int blobSize = sqlite3_column_bytes(statement, column_idx_dst);
 			
 			// Performance tuning:
 			// Use dataWithBytesNoCopy to avoid an extra allocation and memcpy.
@@ -1171,8 +1178,8 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 			dstFilePath = dstFilePathDecryptor(data);
 		}
 		
-		int rules = sqlite3_column_int(statement, 3);
-		BOOL manual = (BOOL)sqlite3_column_int(statement, 4);
+		int rules = sqlite3_column_int(statement, column_idx_rules);
+		BOOL manual = (BOOL)sqlite3_column_int(statement, column_idx_manual);
 		
 		block(edgeRowid, name, dstRowid, dstFilePath, rules, manual);
 	}
@@ -1199,22 +1206,29 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	
 	// SELECT "rowid", "name", "src", "rules", "manual" FROM "tableName" WHERE "dst" = ?;
 	
-	sqlite3_bind_int64(statement, 1, dstRowid);
+	int const column_idx_rowid  = SQLITE_COLUMN_START + 0;
+	int const column_idx_name   = SQLITE_COLUMN_START + 1;
+	int const column_idx_src    = SQLITE_COLUMN_START + 2;
+	int const column_idx_rules  = SQLITE_COLUMN_START + 3;
+	int const column_idx_manual = SQLITE_COLUMN_START + 4;
+	int const bind_idx_dst      = SQLITE_BIND_START;
+	
+	sqlite3_bind_int64(statement, bind_idx_dst, dstRowid);
 	
 	int status;
 	while ((status = sqlite3_step(statement)) == SQLITE_ROW)
 	{
-		int64_t edgeRowid = sqlite3_column_int64(statement, 0);
+		int64_t edgeRowid = sqlite3_column_int64(statement, column_idx_rowid);
 		
-		const unsigned char *text = sqlite3_column_text(statement, 1);
-		int textSize = sqlite3_column_bytes(statement, 1);
+		const unsigned char *text = sqlite3_column_text(statement, column_idx_name);
+		int textSize = sqlite3_column_bytes(statement, column_idx_name);
 		
 		NSString *name = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 		
-		int64_t srcRowid = sqlite3_column_int64(statement, 2);
-		int rules = sqlite3_column_int(statement, 3);
+		int64_t srcRowid = sqlite3_column_int64(statement, column_idx_src);
+		int rules = sqlite3_column_int(statement, column_idx_rules);
 		
-		BOOL manual = (BOOL)sqlite3_column_int(statement, 4);
+		BOOL manual = (BOOL)sqlite3_column_int(statement, column_idx_manual);
 		
 		block(edgeRowid, name, srcRowid, rules, manual);
 	}
@@ -1266,16 +1280,21 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	
 	// SELECT COUNT(*) AS NumberOfRows FROM "tableName" WHERE "src" = ? AND "dst" != ? AND "name" = ?;
 	
-	sqlite3_bind_int64(statement, 1, srcRowid);
-	sqlite3_bind_int64(statement, 2, dstRowid);
+	int const column_idx_count = SQLITE_COLUMN_START;
+	int const bind_idx_src     = SQLITE_BIND_START + 0;
+	int const bind_idx_dst     = SQLITE_BIND_START + 1;
+	int const bind_idx_name    = SQLITE_BIND_START + 2;
+	
+	sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
+	sqlite3_bind_int64(statement, bind_idx_dst, dstRowid);
 	
 	YapDatabaseString _name; MakeYapDatabaseString(&_name, name);
-	sqlite3_bind_text(statement, 3, _name.str, _name.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
-		count = sqlite3_column_int64(statement, 0);
+		count = sqlite3_column_int64(statement, column_idx_count);
 	}
 	else if (status == SQLITE_ERROR)
 	{
@@ -1305,16 +1324,21 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	
 	// SELECT COUNT(*) AS NumberOfRows FROM "tableName" WHERE "dst" = ? AND "src" != ? AND "name" = ?;
 	
-	sqlite3_bind_int64(statement, 1, dstRowid);
-	sqlite3_bind_int64(statement, 2, srcRowid);
+	int const column_idx_count = SQLITE_COLUMN_START;
+	int const bind_idx_dst     = SQLITE_BIND_START + 0;
+	int const bind_idx_src     = SQLITE_BIND_START + 1;
+	int const bind_idx_name    = SQLITE_BIND_START + 2;
+	
+	sqlite3_bind_int64(statement, bind_idx_dst, dstRowid);
+	sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
 	
 	YapDatabaseString _name; MakeYapDatabaseString(&_name, name);
-	sqlite3_bind_text(statement, 3, _name.str, _name.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
-		count = sqlite3_column_int64(statement, 0);
+		count = sqlite3_column_int64(statement, column_idx_count);
 	}
 	else if (status == SQLITE_ERROR)
 	{
@@ -1350,6 +1374,11 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	
 	// SELECT COUNT(*) AS NumberOfRows FROM "tableName" WHERE "dst" = ? AND "src" != ? AND "name" = ?;
 	
+	int const column_idx_count = SQLITE_COLUMN_START;
+	int const bind_idx_dst     = SQLITE_BIND_START + 0;
+	int const bind_idx_src     = SQLITE_BIND_START + 1;
+	int const bind_idx_name    = SQLITE_BIND_START + 2;
+	
 	YapDatabaseString _dstFilePath; MakeYapDatabaseString(&_dstFilePath, nil);
 	__attribute__((objc_precise_lifetime)) NSData *dstBlob = nil;
 	
@@ -1359,23 +1388,23 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	
 	if (dstBlob)
 	{
-		sqlite3_bind_blob(statement, 1, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
+		sqlite3_bind_blob(statement, bind_idx_dst, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
 	}
 	else
 	{
 		MakeYapDatabaseString(&_dstFilePath, dstFilePath);
-		sqlite3_bind_text(statement, 1, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_idx_dst, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
 	}
 	
-	sqlite3_bind_int64(statement, 2, srcRowid);
+	sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
 	
 	YapDatabaseString _name; MakeYapDatabaseString(&_name, name);
-	sqlite3_bind_text(statement, 3, _name.str, _name.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
-		count = sqlite3_column_int64(statement, 0);
+		count = sqlite3_column_int64(statement, column_idx_count);
 	}
 	else if (status == SQLITE_ERROR)
 	{
@@ -1472,7 +1501,13 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	
 	// SELECT "rowid", "rules" FROM "tableName" WHERE "src" = ? AND "dst" = ? AND "name" = ? AND "manual" = 1 LIMIT 1;
 	
-	sqlite3_bind_int64(statement, 1, edge->sourceRowid);
+	int const column_idx_rowid = SQLITE_COLUMN_START + 0;
+	int const column_idx_rules = SQLITE_COLUMN_START + 1;
+	int const bind_idx_src     = SQLITE_BIND_START + 0;
+	int const bind_idx_dst     = SQLITE_BIND_START + 1;
+	int const bind_idx_name    = SQLITE_BIND_START + 2;
+	
+	sqlite3_bind_int64(statement, bind_idx_src, edge->sourceRowid);
 	
 	YapDatabaseString _dstFilePath; MakeYapDatabaseString(&_dstFilePath, nil);
 	__attribute__((objc_precise_lifetime)) NSData *dstBlob = nil;
@@ -1485,33 +1520,33 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		if (dstBlob)
 		{
-			sqlite3_bind_blob(statement, 2, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
+			sqlite3_bind_blob(statement, bind_idx_dst, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
 		}
 		else
 		{
 			MakeYapDatabaseString(&_dstFilePath, edge->destinationFilePath);
-			sqlite3_bind_text(statement, 2, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
+			sqlite3_bind_text(statement, bind_idx_dst, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
 		}
 	}
 	else
 	{
-		sqlite3_bind_int64(statement, 2, edge->destinationRowid);
+		sqlite3_bind_int64(statement, bind_idx_dst, edge->destinationRowid);
 	}
 	
 	YapDatabaseString _name; MakeYapDatabaseString(&_name, edge->name);
-	sqlite3_bind_text(statement, 3, _name.str, _name.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	
 	YapDatabaseRelationshipEdge *matchingEdge = nil;
 	
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
-		int64_t edgeRowid = sqlite3_column_int64(statement, 0);
-		int rules = sqlite3_column_int(statement, 1);
+		int64_t edgeRowid = sqlite3_column_int64(statement, column_idx_rowid);
+		int rules = sqlite3_column_int(statement, column_idx_rules);
 		
 		matchingEdge = [edge copy];
 		matchingEdge->edgeRowid = edgeRowid;
-		matchingEdge->nodeDeleteRules = rules;
+		matchingEdge->nodeDeleteRules = (unsigned short)rules;
 		
 		matchingEdge->flags |= YDB_FlagsHasEdgeRowid;
 	}
@@ -2166,6 +2201,8 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		// AKA: SELECT "dst" FROM "tableName" WHERE typeof(dst) IS "text" || typeof(dst) IS "blob"
 		// but faster because it uses the dst column index.
 		
+		int const column_idx_dst = SQLITE_COLUMN_START;
+		
 		YDBLogVerbose(@"Looking for files to delete...");
 		
 		YapDatabaseRelationshipFilePathDecryptor dstFilePathDecryptor =
@@ -2176,18 +2213,18 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		{
 			NSString *dstFilePath = nil;
 			
-			int column_type = sqlite3_column_type(statement, 0);
+			int column_type = sqlite3_column_type(statement, column_idx_dst);
 			if (column_type == SQLITE_TEXT)
 			{
-				const unsigned char *text = sqlite3_column_text(statement, 0);
-				int textSize = sqlite3_column_bytes(statement, 0);
+				const unsigned char *text = sqlite3_column_text(statement, column_idx_dst);
+				int textSize = sqlite3_column_bytes(statement, column_idx_dst);
 			
 				dstFilePath = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 			}
 			else if (column_type == SQLITE_BLOB && dstFilePathDecryptor)
 			{
-				const void *blob = sqlite3_column_blob(statement, 0);
-				int blobSize = sqlite3_column_bytes(statement, 0);
+				const void *blob = sqlite3_column_blob(statement, column_idx_dst);
+				int blobSize = sqlite3_column_bytes(statement, column_idx_dst);
 				
 				// Performance tuning:
 				// Use dataWithBytesNoCopy to avoid an extra allocation and memcpy.
@@ -2489,7 +2526,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	// - writing modified edges to the database (changed nodeDeleteRules)
 	// - deleting edges that were manually removed from the list
 	
-	[relationshipConnection->protocolChanges enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop){
+	[relationshipConnection->protocolChanges enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL __unused *stop){
 		
 		__unsafe_unretained NSNumber *srcRowidNumber = (NSNumber *)key;
 		__unsafe_unretained NSMutableArray *protocolEdges = (NSMutableArray *)obj;
@@ -2527,7 +2564,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	//
 	// Process all manual edges that have been set during the transaction.
 	
-	[relationshipConnection->manualChanges enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+	[relationshipConnection->manualChanges enumerateKeysAndObjectsUsingBlock:^(id __unused key, id obj, BOOL __unused *stop) {
 		
 	//	__unsafe_unretained NSString *edgeName = (NSString *)key;
 		__unsafe_unretained NSMutableArray *manualEdges = (NSMutableArray *)obj;
@@ -2654,7 +2691,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// Enumerate all edges where source node is this deleted node.
 		[self enumerateExistingEdgesWithSource:rowid usingBlock:
-		^(int64_t edgeRowid, NSString *name, int64_t dstRowid, NSString *dstFilePath, int nodeDeleteRules, BOOL manual)
+		^(int64_t __unused edgeRowid, NSString *name, int64_t dstRowid, NSString *dstFilePath, int nodeDeleteRules, BOOL __unused manual)
 		{
 			if (dstFilePath)
 			{
@@ -2742,7 +2779,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 							edge->destinationKey = dst.key;
 							edge->destinationCollection = dst.collection;
 							edge->destinationRowid = dstRowid;
-							edge->nodeDeleteRules = nodeDeleteRules;
+							edge->nodeDeleteRules = (unsigned short)nodeDeleteRules;
 							
 							id updatedDstNode =
 							  [dstNode yapDatabaseRelationshipEdgeDeleted:edge withReason:YDB_SourceNodeDeleted];
@@ -2767,7 +2804,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// Enumerate all edges where destination node is this deleted node.
 		[self enumerateExistingEdgesWithDestination:rowid usingBlock:
-		    ^(int64_t edgeRowid, NSString *name, int64_t srcRowid, int nodeDeleteRules, BOOL manual)
+		    ^(int64_t __unused edgeRowid, NSString *name, int64_t srcRowid, int nodeDeleteRules, BOOL __unused manual)
 		{
 			if ([relationshipConnection->deletedInfo ydb_containsKey:@(srcRowid)])
 			{
@@ -2829,7 +2866,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 						edge->destinationKey = collectionKey.key;
 						edge->destinationCollection = collectionKey.collection;
 						edge->destinationRowid = rowid;
-						edge->nodeDeleteRules = nodeDeleteRules;
+						edge->nodeDeleteRules = (unsigned short)nodeDeleteRules;
 						
 						id updatedSrcNode =
 						  [srcNode yapDatabaseRelationshipEdgeDeleted:edge withReason:YDB_DestinationNodeDeleted];
@@ -2976,7 +3013,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 **/
 - (void)handleInsertObject:(id)object
           forCollectionKey:(YapCollectionKey *)collectionKey
-              withMetadata:(id)metadata
+              withMetadata:(id __unused)metadata
                      rowid:(int64_t)rowid
 {
 	YDBLogAutoTrace();
@@ -3079,7 +3116,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 **/
 - (void)handleUpdateObject:(id)object
           forCollectionKey:(YapCollectionKey *)collectionKey
-              withMetadata:(id)metadata
+              withMetadata:(id __unused)metadata
                      rowid:(int64_t)rowid
 {
 	YDBLogAutoTrace();
@@ -3193,7 +3230,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
  * YapDatabase extension hook.
  * This method is invoked by a YapDatabaseReadWriteTransaction as a post-operation-hook.
 **/
-- (void)handleReplaceMetadata:(id)metadata forCollectionKey:(YapCollectionKey *)collectionKey withRowid:(int64_t)rowid
+- (void)handleReplaceMetadata:(id __unused)metadata forCollectionKey:(YapCollectionKey __unused *)collectionKey withRowid:(int64_t __unused)rowid
 {
 	YDBLogAutoTrace();
 	
@@ -3204,7 +3241,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
  * YapDatabase extension hook.
  * This method is invoked by a YapDatabaseReadWriteTransaction as a post-operation-hook.
 **/
-- (void)handleTouchObjectForCollectionKey:(YapCollectionKey *)collectionKey withRowid:(int64_t)rowid
+- (void)handleTouchObjectForCollectionKey:(YapCollectionKey __unused *)collectionKey withRowid:(int64_t __unused)rowid
 {
 	YDBLogAutoTrace();
 	
@@ -3215,7 +3252,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
  * YapDatabase extension hook.
  * This method is invoked by a YapDatabaseReadWriteTransaction as a post-operation-hook.
 **/
-- (void)handleTouchMetadataForCollectionKey:(YapCollectionKey *)collectionKey withRowid:(int64_t)rowid
+- (void)handleTouchMetadataForCollectionKey:(YapCollectionKey __unused *)collectionKey withRowid:(int64_t __unused)rowid
 {
 	YDBLogAutoTrace();
 	
@@ -3367,34 +3404,41 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	
 	// SELECT "rowid", "src", "dst", "rules", "manual" FROM "tableName" WHERE "name" = ?;
 	
+	int const column_idx_rowid  = SQLITE_COLUMN_START + 0;
+	int const column_idx_src    = SQLITE_COLUMN_START + 1;
+	int const column_idx_dst    = SQLITE_COLUMN_START + 2;
+	int const column_idx_rules  = SQLITE_COLUMN_START + 3;
+	int const column_idx_manual = SQLITE_COLUMN_START + 4;
+	int const bind_idx_name     = SQLITE_BIND_START;
+	
 	YapDatabaseString _name; MakeYapDatabaseString(&_name, name);
-	sqlite3_bind_text(statement, 1, _name.str, _name.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	
 	int status;
 	while ((status = sqlite3_step(statement)) == SQLITE_ROW)
 	{
-		int64_t edgeRowid = sqlite3_column_int64(statement, 0);
-		int64_t srcRowid = sqlite3_column_int64(statement, 1);
+		int64_t edgeRowid = sqlite3_column_int64(statement, column_idx_rowid);
+		int64_t srcRowid = sqlite3_column_int64(statement, column_idx_src);
 		
 		int64_t dstRowid = 0;
 		NSString *dstFilePath = nil;
 		
-		int column_type = sqlite3_column_type(statement, 2);
+		int column_type = sqlite3_column_type(statement, column_idx_dst);
 		if (column_type == SQLITE_INTEGER)
 		{
-			dstRowid = sqlite3_column_int64(statement, 2);
+			dstRowid = sqlite3_column_int64(statement, column_idx_dst);
 		}
 		else if (column_type == SQLITE_TEXT)
 		{
-			const unsigned char *text = sqlite3_column_text(statement, 2);
-			int textSize = sqlite3_column_bytes(statement, 2);
+			const unsigned char *text = sqlite3_column_text(statement, column_idx_dst);
+			int textSize = sqlite3_column_bytes(statement, column_idx_dst);
 			
 			dstFilePath = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 		}
 		else if (column_type == SQLITE_BLOB && dstFilePathDecryptor)
 		{
-			const void *blob = sqlite3_column_blob(statement, 2);
-			int blobSize = sqlite3_column_bytes(statement, 2);
+			const void *blob = sqlite3_column_blob(statement, column_idx_dst);
+			int blobSize = sqlite3_column_bytes(statement, column_idx_dst);
 			
 			// Performance tuning:
 			// Use dataWithBytesNoCopy to avoid an extra allocation and memcpy.
@@ -3404,9 +3448,9 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 			dstFilePath = dstFilePathDecryptor(data);
 		}
 		
-		int rules = sqlite3_column_int(statement, 3);
+		int rules = sqlite3_column_int(statement, column_idx_rules);
 		
-		BOOL manual = (BOOL)sqlite3_column_int(statement, 4);
+		BOOL manual = (BOOL)sqlite3_column_int(statement, column_idx_manual);
 		
 		YapDatabaseRelationshipEdge *edge = nil;
 		
@@ -3606,10 +3650,13 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT "rowid", "dst", "rules", "manual" FROM "tableName" WHERE "src" = ? AND "name" = ?;",
 		
-		sqlite3_bind_int64(statement, 1, srcRowid);
+		int const bind_idx_src   = SQLITE_BIND_START + 0;
+		int const bind_idx_name  = SQLITE_BIND_START + 1;
+		
+		sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
 		
 		MakeYapDatabaseString(&_name, name);
-		sqlite3_bind_text(statement, 2, _name.str, _name.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	}
 	else
 	{
@@ -3619,7 +3666,9 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT "rowid", "name", "dst", "rules", "manual" FROM "tableName" WHERE "src" = ?;
 		
-		sqlite3_bind_int64(statement, 1, srcRowid);
+		int const bind_idx_src = SQLITE_BIND_START;
+		
+		sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
 	}
 	
 	YapDatabaseRelationshipFilePathDecryptor dstFilePathDecryptor =
@@ -3639,24 +3688,29 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		{
 			// SELECT "rowid", "dst", "rules", "manual" FROM "tableName" WHERE "src" = ? AND "name" = ?;",
 			
-			edgeRowid = sqlite3_column_int64(statement, 0);
+			int const column_idx_rowid  = SQLITE_COLUMN_START + 0;
+			int const column_idx_dst    = SQLITE_COLUMN_START + 1;
+			int const column_idx_rules  = SQLITE_COLUMN_START + 2;
+			int const column_idx_manual = SQLITE_COLUMN_START + 3;
 			
-			int column_type = sqlite3_column_type(statement, 1);
+			edgeRowid = sqlite3_column_int64(statement, column_idx_rowid);
+			
+			int column_type = sqlite3_column_type(statement, column_idx_dst);
 			if (column_type == SQLITE_INTEGER)
 			{
-				dstRowid = sqlite3_column_int64(statement, 1);
+				dstRowid = sqlite3_column_int64(statement, column_idx_dst);
 			}
 			else if (column_type == SQLITE_TEXT)
 			{
-				const unsigned char *text = sqlite3_column_text(statement, 1);
-				int textSize = sqlite3_column_bytes(statement, 1);
+				const unsigned char *text = sqlite3_column_text(statement, column_idx_dst);
+				int textSize = sqlite3_column_bytes(statement, column_idx_dst);
 				
 				dstFilePath = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 			}
 			else if (column_type == SQLITE_BLOB && dstFilePathDecryptor)
 			{
-				const void *blob = sqlite3_column_blob(statement, 1);
-				int blobSize = sqlite3_column_bytes(statement, 1);
+				const void *blob = sqlite3_column_blob(statement, column_idx_dst);
+				int blobSize = sqlite3_column_bytes(statement, column_idx_dst);
 				
 				// Performance tuning:
 				// Use dataWithBytesNoCopy to avoid an extra allocation and memcpy.
@@ -3666,36 +3720,42 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 				dstFilePath = dstFilePathDecryptor(data);
 			}
 			
-			rules = sqlite3_column_int(statement, 2);
-			manual = (BOOL)sqlite3_column_int(statement, 3);
+			rules = sqlite3_column_int(statement, column_idx_rules);
+			manual = (BOOL)sqlite3_column_int(statement, column_idx_manual);
 		}
 		else
 		{
 			// SELECT "rowid", "name", "dst", "rules", "manual" FROM "tableName" WHERE "src" = ?;
 			
-			edgeRowid = sqlite3_column_int64(statement, 0);
+			int const column_idx_rowid  = SQLITE_COLUMN_START + 0;
+			int const column_idx_name   = SQLITE_COLUMN_START + 1;
+			int const column_idx_dst    = SQLITE_COLUMN_START + 2;
+			int const column_idx_rules  = SQLITE_COLUMN_START + 3;
+			int const column_idx_manual = SQLITE_COLUMN_START + 4;
 			
-			const unsigned char *text = sqlite3_column_text(statement, 1);
-			int textSize = sqlite3_column_bytes(statement, 1);
+			edgeRowid = sqlite3_column_int64(statement, column_idx_rowid);
+			
+			const unsigned char *text = sqlite3_column_text(statement, column_idx_name);
+			int textSize = sqlite3_column_bytes(statement, column_idx_name);
 			
 			edgeName = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 			
-			int column_type = sqlite3_column_type(statement, 2);
+			int column_type = sqlite3_column_type(statement, column_idx_dst);
 			if (column_type == SQLITE_INTEGER)
 			{
-				dstRowid = sqlite3_column_int64(statement, 2);
+				dstRowid = sqlite3_column_int64(statement, column_idx_dst);
 			}
 			else if (column_type == SQLITE_TEXT)
 			{
-				text = sqlite3_column_text(statement, 2);
-				textSize = sqlite3_column_bytes(statement, 2);
+				text = sqlite3_column_text(statement, column_idx_dst);
+				textSize = sqlite3_column_bytes(statement, column_idx_dst);
 				
 				dstFilePath = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 			}
 			else if (column_type == SQLITE_BLOB && dstFilePathDecryptor)
 			{
-				const void *blob = sqlite3_column_blob(statement, 2);
-				int blobSize = sqlite3_column_bytes(statement, 2);
+				const void *blob = sqlite3_column_blob(statement, column_idx_dst);
+				int blobSize = sqlite3_column_bytes(statement, column_idx_dst);
 				
 				// Performance tuning:
 				// Use dataWithBytesNoCopy to avoid an extra allocation and memcpy.
@@ -3705,8 +3765,8 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 				dstFilePath = dstFilePathDecryptor(data);
 			}
 			
-			rules = sqlite3_column_int(statement, 3);
-			manual = (BOOL)sqlite3_column_int(statement, 4);
+			rules = sqlite3_column_int(statement, column_idx_rules);
+			manual = (BOOL)sqlite3_column_int(statement, column_idx_manual);
 		}
 		
 		YapDatabaseRelationshipEdge *edge = nil;
@@ -3886,10 +3946,13 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT "rowid", "src", "rules", "manual" FROM "tableName" WHERE "dst" = ? AND "name" = ?;
 		
-		sqlite3_bind_int64(statement, 1, dstRowid);
+		int const bind_idx_dst  = SQLITE_BIND_START + 0;
+		int const bind_idx_name = SQLITE_BIND_START + 1;
+		
+		sqlite3_bind_int64(statement, bind_idx_dst, dstRowid);
 		
 		MakeYapDatabaseString(&_name, name);
-		sqlite3_bind_text(statement, 2, _name.str, _name.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	}
 	else
 	{
@@ -3899,7 +3962,9 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT "rowid", "name", "src", "rules", "manual" FROM "tableName" WHERE "dst" = ?;
 		
-		sqlite3_bind_int64(statement, 1, dstRowid);
+		int const bind_idx_dst = SQLITE_BIND_START;
+		
+		sqlite3_bind_int64(statement, bind_idx_dst, dstRowid);
 	}
 	
 	int status;
@@ -3915,23 +3980,34 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		{
 			// SELECT "rowid", "src", "rules", "manual" FROM "tableName" WHERE "dst" = ? AND "name" = ?;
 			
-			edgeRowid = sqlite3_column_int64(statement, 0);
-			srcRowid = sqlite3_column_int64(statement, 1);
-			rules = sqlite3_column_int(statement, 2);
-			manual = (BOOL)sqlite3_column_int(statement, 3);
+			int const column_idx_rowid  = SQLITE_COLUMN_START + 0;
+			int const column_idx_src    = SQLITE_COLUMN_START + 1;
+			int const column_idx_rules  = SQLITE_COLUMN_START + 2;
+			int const column_idx_manual = SQLITE_COLUMN_START + 3;
+			
+			edgeRowid = sqlite3_column_int64(statement, column_idx_rowid);
+			srcRowid = sqlite3_column_int64(statement, column_idx_src);
+			rules = sqlite3_column_int(statement, column_idx_rules);
+			manual = (BOOL)sqlite3_column_int(statement, column_idx_manual);
 		}
 		else
 		{
 			// SELECT "rowid", "name", "src", "rules", "manual" FROM "tableName" WHERE "dst" = ?;
 			
-			edgeRowid = sqlite3_column_int64(statement, 0);
+			int const column_idx_rowid  = SQLITE_COLUMN_START + 0;
+			int const column_idx_name   = SQLITE_COLUMN_START + 1;
+			int const column_idx_src    = SQLITE_COLUMN_START + 2;
+			int const column_idx_rules  = SQLITE_COLUMN_START + 3;
+			int const column_idx_manual = SQLITE_COLUMN_START + 4;
 			
-			const unsigned char *text = sqlite3_column_text(statement, 1);
-			int textSize = sqlite3_column_bytes(statement, 1);
+			edgeRowid = sqlite3_column_int64(statement, column_idx_rowid);
 			
-			srcRowid = sqlite3_column_int64(statement, 2);
-			rules = sqlite3_column_int(statement, 3);
-			manual = (BOOL)sqlite3_column_int(statement, 4);
+			const unsigned char *text = sqlite3_column_text(statement, column_idx_name);
+			int textSize = sqlite3_column_bytes(statement, column_idx_name);
+			
+			srcRowid = sqlite3_column_int64(statement, column_idx_src);
+			rules = sqlite3_column_int(statement, column_idx_rules);
+			manual = (BOOL)sqlite3_column_int(statement, column_idx_manual);
 			
 			edgeName = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 		}
@@ -4102,6 +4178,9 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT "rowid", "src", "rules", "manual" FROM "tableName" WHERE "dst" = ? AND "name" = ?;
 		
+		int const bind_idx_dst  = SQLITE_BIND_START + 0;
+		int const bind_idx_name = SQLITE_BIND_START + 1;
+		
 		if (dstFilePathEncryptor)
 		{
 			dstBlob = dstFilePathEncryptor(dstFilePath);
@@ -4109,16 +4188,16 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		if (dstBlob)
 		{
-			sqlite3_bind_blob(statement, 1, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
+			sqlite3_bind_blob(statement, bind_idx_dst, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
 		}
 		else
 		{
 			MakeYapDatabaseString(&_dstFilePath, dstFilePath);
-			sqlite3_bind_text(statement, 1, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
+			sqlite3_bind_text(statement, bind_idx_dst, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
 		}
 		
 		MakeYapDatabaseString(&_name, name);
-		sqlite3_bind_text(statement, 2, _name.str, _name.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	}
 	else
 	{
@@ -4128,18 +4207,20 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT "rowid", "name", "src", "rules", "manual" FROM "tableName" WHERE "dst" = ?;
 		
+		int const bind_idx_dst = SQLITE_BIND_START;
+		
 		if (dstFilePathEncryptor) {
 			dstBlob = dstFilePathEncryptor(dstFilePath);
 		}
 		
 		if (dstBlob)
 		{
-			sqlite3_bind_blob(statement, 1, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
+			sqlite3_bind_blob(statement, bind_idx_dst, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
 		}
 		else
 		{
 			MakeYapDatabaseString(&_dstFilePath, dstFilePath);
-			sqlite3_bind_text(statement, 1, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
+			sqlite3_bind_text(statement, bind_idx_dst, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
 		}
 	}
 	
@@ -4154,21 +4235,36 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		if (name)
 		{
-			edgeRowid = sqlite3_column_int64(statement, 0);
-			srcRowid = sqlite3_column_int64(statement, 1);
-			rules = sqlite3_column_int(statement, 2);
-			manual = (BOOL)sqlite3_column_int(statement, 3);
+			// SELECT "rowid", "src", "rules", "manual" FROM "tableName" WHERE "dst" = ? AND "name" = ?;
+			
+			int const column_idx_rowid  = SQLITE_COLUMN_START + 0;
+			int const column_idx_src    = SQLITE_COLUMN_START + 1;
+			int const column_idx_rules  = SQLITE_COLUMN_START + 2;
+			int const column_idx_manual = SQLITE_COLUMN_START + 3;
+			
+			edgeRowid = sqlite3_column_int64(statement, column_idx_rowid);
+			srcRowid = sqlite3_column_int64(statement, column_idx_src);
+			rules = sqlite3_column_int(statement, column_idx_rules);
+			manual = (BOOL)sqlite3_column_int(statement, column_idx_manual);
 		}
 		else
 		{
-			edgeRowid = sqlite3_column_int64(statement, 0);
+			// SELECT "rowid", "name", "src", "rules", "manual" FROM "tableName" WHERE "dst" = ?;
 			
-			const unsigned char *text = sqlite3_column_text(statement, 1);
-			int textSize = sqlite3_column_bytes(statement, 1);
+			int const column_idx_rowid  = SQLITE_COLUMN_START + 0;
+			int const column_idx_name   = SQLITE_COLUMN_START + 1;
+			int const column_idx_src    = SQLITE_COLUMN_START + 2;
+			int const column_idx_rules  = SQLITE_COLUMN_START + 3;
+			int const column_idx_manual = SQLITE_COLUMN_START + 4;
 			
-			srcRowid = sqlite3_column_int64(statement, 2);
-			rules = sqlite3_column_int(statement, 3);
-			manual = (BOOL)sqlite3_column_int(statement, 4);
+			edgeRowid = sqlite3_column_int64(statement, column_idx_rowid);
+			
+			const unsigned char *text = sqlite3_column_text(statement, column_idx_name);
+			int textSize = sqlite3_column_bytes(statement, column_idx_name);
+			
+			srcRowid = sqlite3_column_int64(statement, column_idx_src);
+			rules = sqlite3_column_int(statement, column_idx_rules);
+			manual = (BOOL)sqlite3_column_int(statement, column_idx_manual);
 			
 			edgeName = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 		}
@@ -4398,11 +4494,15 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT "rowid", "rules", "manual" FROM "tableName" WHERE "src" = ? AND "dst" = ? AND "name" = ?;
 		
-		sqlite3_bind_int64(statement, 1, srcRowid);
-		sqlite3_bind_int64(statement, 2, dstRowid);
+		int const bind_idx_src  = SQLITE_BIND_START + 0;
+		int const bind_idx_dst  = SQLITE_BIND_START + 1;
+		int const bind_idx_name = SQLITE_BIND_START + 2;
+		
+		sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
+		sqlite3_bind_int64(statement, bind_idx_dst, dstRowid);
 		
 		MakeYapDatabaseString(&_name, name);
-		sqlite3_bind_text(statement, 3, _name.str, _name.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	}
 	else
 	{
@@ -4412,8 +4512,11 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT "rowid", "name", "rules", "manual" FROM "tableName" WHERE "src" = ? AND "dst" = ?;
 		
-		sqlite3_bind_int64(statement, 1, srcRowid);
-		sqlite3_bind_int64(statement, 2, dstRowid);
+		int const bind_idx_src = SQLITE_BIND_START + 0;
+		int const bind_idx_dst = SQLITE_BIND_START + 1;
+		
+		sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
+		sqlite3_bind_int64(statement, bind_idx_dst, dstRowid);
 	}
 	
 	int status;
@@ -4426,19 +4529,32 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		if (name)
 		{
-			edgeRowid = sqlite3_column_int64(statement, 0);
-			rules = sqlite3_column_int(statement, 1);
-			manual = (BOOL)sqlite3_column_int(statement, 2);
+			// SELECT "rowid", "rules", "manual" FROM "tableName" WHERE "src" = ? AND "dst" = ? AND "name" = ?;
+			
+			int const column_idx_rowid  = SQLITE_COLUMN_START + 0;
+			int const column_idx_rules  = SQLITE_COLUMN_START + 1;
+			int const column_idx_manual = SQLITE_COLUMN_START + 2;
+			
+			edgeRowid = sqlite3_column_int64(statement, column_idx_rowid);
+			rules = sqlite3_column_int(statement, column_idx_rules);
+			manual = (BOOL)sqlite3_column_int(statement, column_idx_manual);
 		}
 		else
 		{
-			edgeRowid = sqlite3_column_int64(statement, 0);
+			// SELECT "rowid", "name", "rules", "manual" FROM "tableName" WHERE "src" = ? AND "dst" = ?;
 			
-			const unsigned char *text = sqlite3_column_text(statement, 1);
-			int textSize = sqlite3_column_bytes(statement, 1);
+			int const column_idx_rowid  = SQLITE_COLUMN_START + 0;
+			int const column_idx_name   = SQLITE_COLUMN_START + 1;
+			int const column_idx_rules  = SQLITE_COLUMN_START + 2;
+			int const column_idx_manual = SQLITE_COLUMN_START + 3;
 			
-			rules = sqlite3_column_int(statement, 2);
-			manual = (BOOL)sqlite3_column_int(statement, 3);
+			edgeRowid = sqlite3_column_int64(statement, column_idx_rowid);
+			
+			const unsigned char *text = sqlite3_column_text(statement, column_idx_name);
+			int textSize = sqlite3_column_bytes(statement, column_idx_name);
+			
+			rules = sqlite3_column_int(statement, column_idx_rules);
+			manual = (BOOL)sqlite3_column_int(statement, column_idx_manual);
 			
 			edgeName = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 		}
@@ -4620,7 +4736,11 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT "rowid", "rules", "manual" FROM "tableName" WHERE "src" = ? AND "dst" = ? AND "name" = ?;
 		
-		sqlite3_bind_int64(statement, 1, srcRowid);
+		int const bind_idx_src  = SQLITE_BIND_START + 0;
+		int const bind_idx_dst  = SQLITE_BIND_START + 1;
+		int const bind_idx_name = SQLITE_BIND_START + 2;
+		
+		sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
 		
 		if (dstFilePathEncryptor) {
 			dstBlob = dstFilePathEncryptor(dstFilePath);
@@ -4628,16 +4748,16 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		if (dstBlob)
 		{
-			sqlite3_bind_blob(statement, 2, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
+			sqlite3_bind_blob(statement, bind_idx_dst, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
 		}
 		else
 		{
 			MakeYapDatabaseString(&_dstFilePath, dstFilePath);
-			sqlite3_bind_text(statement, 2, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
+			sqlite3_bind_text(statement, bind_idx_dst, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
 		}
 		
 		MakeYapDatabaseString(&_name, name);
-		sqlite3_bind_text(statement, 3, _name.str, _name.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	}
 	else
 	{
@@ -4647,7 +4767,10 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT "rowid", "name", "rules", "manual" FROM "tableName" WHERE "src" = ? AND "dst" = ?;
 		
-		sqlite3_bind_int64(statement, 1, srcRowid);
+		int const bind_idx_src = SQLITE_BIND_START + 0;
+		int const bind_idx_dst = SQLITE_BIND_START + 1;
+		
+		sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
 		
 		if (dstFilePathEncryptor) {
 			dstBlob = dstFilePathEncryptor(dstFilePath);
@@ -4655,12 +4778,12 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		if (dstBlob)
 		{
-			sqlite3_bind_blob(statement, 2, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
+			sqlite3_bind_blob(statement, bind_idx_dst, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
 		}
 		else
 		{
 			MakeYapDatabaseString(&_dstFilePath, dstFilePath);
-			sqlite3_bind_text(statement, 2, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
+			sqlite3_bind_text(statement, bind_idx_dst, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
 		}
 	}
 	
@@ -4676,21 +4799,30 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		{
 			// SELECT "rowid", "rules", "manual" FROM "tableName" WHERE "src" = ? AND "dst" = ? AND "name" = ?;
 			
-			edgeRowid = sqlite3_column_int64(statement, 0);
-			rules = sqlite3_column_int(statement, 1);
-			manual = (BOOL)sqlite3_column_int(statement, 2);
+			int const column_idx_rowid  = SQLITE_COLUMN_START + 0;
+			int const column_idx_rules  = SQLITE_COLUMN_START + 1;
+			int const column_idx_manual = SQLITE_COLUMN_START + 2;
+			
+			edgeRowid = sqlite3_column_int64(statement, column_idx_rowid);
+			rules = sqlite3_column_int(statement, column_idx_rules);
+			manual = (BOOL)sqlite3_column_int(statement, column_idx_manual);
 		}
 		else
 		{
 			// SELECT "rowid", "name", "rules", "manual" FROM "tableName" WHERE "src" = ? AND "dst" = ?;
 			
-			edgeRowid = sqlite3_column_int64(statement, 0);
+			int const column_idx_rowid  = SQLITE_COLUMN_START + 0;
+			int const column_idx_name   = SQLITE_COLUMN_START + 1;
+			int const column_idx_rules  = SQLITE_COLUMN_START + 2;
+			int const column_idx_manual = SQLITE_COLUMN_START + 3;
 			
-			const unsigned char *text = sqlite3_column_text(statement, 1);
-			int textSize = sqlite3_column_bytes(statement, 1);
+			edgeRowid = sqlite3_column_int64(statement, column_idx_rowid);
 			
-			rules = sqlite3_column_int(statement, 2);
-			manual = (BOOL)sqlite3_column_int(statement, 3);
+			const unsigned char *text = sqlite3_column_text(statement, column_idx_name);
+			int textSize = sqlite3_column_bytes(statement, column_idx_name);
+			
+			rules = sqlite3_column_int(statement, column_idx_rules);
+			manual = (BOOL)sqlite3_column_int(statement, column_idx_manual);
 			
 			edgeName = [[NSString alloc] initWithBytes:text length:textSize encoding:NSUTF8StringEncoding];
 		}
@@ -4797,7 +4929,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	if (databaseTransaction->isReadWriteTransaction)
 	{
 		__block NSUInteger count = 0;
-		[self enumerateEdgesWithName:name usingBlock:^(YapDatabaseRelationshipEdge *edge, BOOL *stop) {
+		[self enumerateEdgesWithName:name usingBlock:^(YapDatabaseRelationshipEdge __unused *edge, BOOL __unused *stop) {
 			
 			count++;
 		}];
@@ -4812,13 +4944,16 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	
 	// SELECT COUNT(*) AS NumberOfRows FROM "tableName" WHERE "name" = ?;
 	
+	int const column_idx_count = SQLITE_COLUMN_START;
+	int const bind_idx_name    = SQLITE_BIND_START;
+	
 	YapDatabaseString _name; MakeYapDatabaseString(&_name, name);
-	sqlite3_bind_text(statement, 1, _name.str, _name.length, SQLITE_STATIC);
+	sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
-		count = sqlite3_column_int64(statement, 0);
+		count = sqlite3_column_int64(statement, column_idx_count);
 	}
 	else if (status == SQLITE_ERROR)
 	{
@@ -4867,7 +5002,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		[self enumerateEdgesWithName:name
 		                   sourceKey:srcKey
 		                  collection:srcCollection
-		                  usingBlock:^(YapDatabaseRelationshipEdge *edge, BOOL *stop) {
+		                  usingBlock:^(YapDatabaseRelationshipEdge __unused *edge, BOOL __unused *stop) {
 			
 			count++;
 		}];
@@ -4896,10 +5031,13 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT COUNT(*) AS NumberOfRows FROM "tableName" WHERE "src" = ? AND "name" = ?;
 		
-		sqlite3_bind_int64(statement, 1, srcRowid);
+		int const bind_idx_src  = SQLITE_BIND_START + 0;
+		int const bind_idx_name = SQLITE_BIND_START + 1;
+		
+		sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
 		
 		MakeYapDatabaseString(&_name, name);
-		sqlite3_bind_text(statement, 2, _name.str, _name.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	}
 	else
 	{
@@ -4908,7 +5046,9 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT COUNT(*) AS NumberOfRows FROM "tableName" WHERE "src" = ?;
 		
-		sqlite3_bind_int64(statement, 1, srcRowid);
+		int const bind_idx_src = SQLITE_BIND_START;
+		
+		sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
 	}
 	
 	int64_t count = 0;
@@ -4917,7 +5057,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
-		count = sqlite3_column_int64(statement, 0);
+		count = sqlite3_column_int64(statement, SQLITE_COLUMN_START);
 	}
 	else if (status == SQLITE_ERROR)
 	{
@@ -4968,7 +5108,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		[self enumerateEdgesWithName:name
 		              destinationKey:dstKey
 		                  collection:dstCollection
-		                  usingBlock:^(YapDatabaseRelationshipEdge *edge, BOOL *stop) {
+		                  usingBlock:^(YapDatabaseRelationshipEdge __unused *edge, BOOL __unused *stop) {
 			
 			count++;
 		}];
@@ -4997,10 +5137,13 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT COUNT(*) AS NumberOfRows FROM "tableName" WHERE "dst" = ? AND "name" = ?;
 		
-		sqlite3_bind_int64(statement, 1, dstRowid);
+		int const bind_idx_dst  = SQLITE_BIND_START + 0;
+		int const bind_idx_name = SQLITE_BIND_START + 1;
+		
+		sqlite3_bind_int64(statement, bind_idx_dst, dstRowid);
 		
 		MakeYapDatabaseString(&_name, name);
-		sqlite3_bind_text(statement, 2, _name.str, _name.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	}
 	else
 	{
@@ -5009,7 +5152,9 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT COUNT(*) AS NumberOfRows FROM "tableName" WHERE "dst" = ?;
 		
-		sqlite3_bind_int64(statement, 1, dstRowid);
+		int const bind_idx_dst = SQLITE_BIND_START;
+		
+		sqlite3_bind_int64(statement, bind_idx_dst, dstRowid);
 	}
 	
 	int64_t count = 0;
@@ -5017,7 +5162,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
-		count = sqlite3_column_int64(statement, 0);
+		count = sqlite3_column_int64(statement, SQLITE_COLUMN_START);
 	}
 	else if (status == SQLITE_ERROR)
 	{
@@ -5060,7 +5205,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		__block NSUInteger count = 0;
 		[self enumerateEdgesWithName:name
 		         destinationFilePath:dstFilePath
-		                  usingBlock:^(YapDatabaseRelationshipEdge *edge, BOOL *stop) {
+		                  usingBlock:^(YapDatabaseRelationshipEdge __unused *edge, BOOL __unused *stop) {
 			
 			count++;
 		}];
@@ -5083,22 +5228,25 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT COUNT(*) AS NumberOfRows FROM "tableName" WHERE "dst" = ? AND "name" = ?;
 		
+		int const bind_idx_dst  = SQLITE_BIND_START + 0;
+		int const bind_idx_name = SQLITE_BIND_START + 1;
+		
 		if (dstFilePathEncryptor) {
 			dstBlob = dstFilePathEncryptor(dstFilePath);
 		}
 		
 		if (dstBlob)
 		{
-			sqlite3_bind_blob(statement, 1, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
+			sqlite3_bind_blob(statement, bind_idx_dst, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
 		}
 		else
 		{
 			MakeYapDatabaseString(&_dstFilePath, dstFilePath);
-			sqlite3_bind_text(statement, 1, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
+			sqlite3_bind_text(statement, bind_idx_dst, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
 		}
 		
 		MakeYapDatabaseString(&_name, name);
-		sqlite3_bind_text(statement, 2, _name.str, _name.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	}
 	else
 	{
@@ -5107,18 +5255,20 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT COUNT(*) AS NumberOfRows FROM "tableName" WHERE "dst" = ?;
 		
+		int const bind_idx_dst = SQLITE_BIND_START;
+		
 		if (dstFilePathEncryptor) {
 			dstBlob = dstFilePathEncryptor(dstFilePath);
 		}
 		
 		if (dstBlob)
 		{
-			sqlite3_bind_blob(statement, 1, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
+			sqlite3_bind_blob(statement, bind_idx_dst, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
 		}
 		else
 		{
 			MakeYapDatabaseString(&_dstFilePath, dstFilePath);
-			sqlite3_bind_text(statement, 1, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
+			sqlite3_bind_text(statement, bind_idx_dst, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
 		}
 	}
 	
@@ -5127,7 +5277,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
-		count = sqlite3_column_int64(statement, 0);
+		count = sqlite3_column_int64(statement, SQLITE_COLUMN_START);
 	}
 	else if (status == SQLITE_ERROR)
 	{
@@ -5205,7 +5355,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		                  collection:srcCollection
 		              destinationKey:dstKey
 		                  collection:dstCollection
-		                  usingBlock:^(YapDatabaseRelationshipEdge *edge, BOOL *stop) {
+		                  usingBlock:^(YapDatabaseRelationshipEdge __unused *edge, BOOL __unused *stop) {
 			
 			count++;
 		}];
@@ -5247,11 +5397,15 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT COUNT(*) AS NumberOfRows FROM "tableName" WHERE "src" = ? AND "dst" = ? AND "name" = ?;
 		
-		sqlite3_bind_int64(statement, 1, srcRowid);
-		sqlite3_bind_int64(statement, 2, dstRowid);
+		int const bind_idx_src  = SQLITE_BIND_START + 0;
+		int const bind_idx_dst  = SQLITE_BIND_START + 1;
+		int const bind_idx_name = SQLITE_BIND_START + 2;
+		
+		sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
+		sqlite3_bind_int64(statement, bind_idx_dst, dstRowid);
 		
 		MakeYapDatabaseString(&_name, name);
-		sqlite3_bind_text(statement, 3, _name.str, _name.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	}
 	else
 	{
@@ -5260,8 +5414,11 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT COUNT(*) AS NumberOfRows FROM "tableName" WHERE "src" = ? AND "dst" = ?;
 		
-		sqlite3_bind_int64(statement, 1, srcRowid);
-		sqlite3_bind_int64(statement, 2, dstRowid);
+		int const bind_idx_src = SQLITE_BIND_START + 0;
+		int const bind_idx_dst = SQLITE_BIND_START + 1;
+		
+		sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
+		sqlite3_bind_int64(statement, bind_idx_dst, dstRowid);
 	}
 	
 	int64_t count = 0;
@@ -5270,7 +5427,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
-		count = sqlite3_column_int64(statement, 0);
+		count = sqlite3_column_int64(statement, SQLITE_COLUMN_START);
 	}
 	else if (status == SQLITE_ERROR)
 	{
@@ -5337,7 +5494,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		                   sourceKey:srcKey
 		                  collection:srcCollection
 		         destinationFilePath:dstFilePath
-		                  usingBlock:^(YapDatabaseRelationshipEdge *edge, BOOL *stop) {
+		                  usingBlock:^(YapDatabaseRelationshipEdge __unused *edge, BOOL __unused *stop) {
 			
 			count++;
 		}];
@@ -5373,7 +5530,11 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT COUNT(*) AS NumberOfRows FROM "tableName" WHERE "src" = ? AND "dst" = ? AND "name" = ?;
 		
-		sqlite3_bind_int64(statement, 1, srcRowid);
+		int const bind_idx_src  = SQLITE_BIND_START + 0;
+		int const bind_idx_dst  = SQLITE_BIND_START + 1;
+		int const bind_idx_name = SQLITE_BIND_START + 2;
+		
+		sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
 		
 		if (dstFilePathEncryptor) {
 			dstBlob = dstFilePathEncryptor(dstFilePath);
@@ -5381,16 +5542,16 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		if (dstBlob)
 		{
-			sqlite3_bind_blob(statement, 2, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
+			sqlite3_bind_blob(statement, bind_idx_dst, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
 		}
 		else
 		{
 			MakeYapDatabaseString(&_dstFilePath, dstFilePath);
-			sqlite3_bind_text(statement, 2, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
+			sqlite3_bind_text(statement, bind_idx_dst, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
 		}
 		
 		MakeYapDatabaseString(&_name, name);
-		sqlite3_bind_text(statement, 3, _name.str, _name.length, SQLITE_STATIC);
+		sqlite3_bind_text(statement, bind_idx_name, _name.str, _name.length, SQLITE_STATIC);
 	}
 	else
 	{
@@ -5399,7 +5560,10 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		// SELECT COUNT(*) AS NumberOfRows FROM "tableName" WHERE "src" = ? AND "dst" = ?;
 		
-		sqlite3_bind_int64(statement, 1, srcRowid);
+		int const bind_idx_src = SQLITE_BIND_START + 0;
+		int const bind_idx_dst = SQLITE_BIND_START + 1;
+		
+		sqlite3_bind_int64(statement, bind_idx_src, srcRowid);
 		
 		if (dstFilePathEncryptor) {
 			dstBlob = dstFilePathEncryptor(dstFilePath);
@@ -5407,12 +5571,12 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 		
 		if (dstBlob)
 		{
-			sqlite3_bind_blob(statement, 2, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
+			sqlite3_bind_blob(statement, bind_idx_dst, dstBlob.bytes, (int)dstBlob.length, SQLITE_STATIC);
 		}
 		else
 		{
 			MakeYapDatabaseString(&_dstFilePath, dstFilePath);
-			sqlite3_bind_text(statement, 2, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
+			sqlite3_bind_text(statement, bind_idx_dst, _dstFilePath.str, _dstFilePath.length, SQLITE_STATIC);
 		}
 	}
 	
@@ -5422,7 +5586,7 @@ NS_INLINE BOOL EdgeMatchesDestination(YapDatabaseRelationshipEdge *edge, int64_t
 	int status = sqlite3_step(statement);
 	if (status == SQLITE_ROW)
 	{
-		count = sqlite3_column_int64(statement, 0);
+		count = sqlite3_column_int64(statement, SQLITE_COLUMN_START);
 	}
 	else if (status == SQLITE_ERROR)
 	{
