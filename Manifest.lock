@@ -67,7 +67,7 @@ DEPENDENCIES:
   - DJWActionSheet
   - FFCircularProgressView (>= 0.1)
   - JSQMessagesViewController (from `https://github.com/WhisperSystems/JSQMessagesViewController`,
-    commit `533b4bef6c21f82fc471c8074807c961c7581c20`)
+    commit `e5582fef8a6b3e35f8070361ef37237222da712b`)
   - libPhoneNumber-iOS (~> 0.8.2)
   - Mantle (~> 2.0)
   - OpenSSL (~> 1.0.201)
@@ -85,7 +85,7 @@ EXTERNAL SOURCES:
     :branch: master
     :git: https://github.com/corbett/APDropDownNavToolbar.git
   JSQMessagesViewController:
-    :commit: 533b4bef6c21f82fc471c8074807c961c7581c20
+    :commit: e5582fef8a6b3e35f8070361ef37237222da712b
     :git: https://github.com/WhisperSystems/JSQMessagesViewController
   SocketRocket:
     :commit: f1567f1be7ce49ecf2c9d284ead8ea7c422ee99b
@@ -98,7 +98,7 @@ CHECKOUT OPTIONS:
     :commit: 98a606b343c0ccc6cca1cd243b296325716f21e7
     :git: https://github.com/corbett/APDropDownNavToolbar.git
   JSQMessagesViewController:
-    :commit: 533b4bef6c21f82fc471c8074807c961c7581c20
+    :commit: e5582fef8a6b3e35f8070361ef37237222da712b
     :git: https://github.com/WhisperSystems/JSQMessagesViewController
   SocketRocket:
     :commit: f1567f1be7ce49ecf2c9d284ead8ea7c422ee99b
