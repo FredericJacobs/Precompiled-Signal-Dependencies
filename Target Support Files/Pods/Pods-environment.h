@@ -118,13 +118,13 @@
 #define COCOAPODS_POD_AVAILABLE_Mantle
 #define COCOAPODS_VERSION_MAJOR_Mantle 2
 #define COCOAPODS_VERSION_MINOR_Mantle 0
-#define COCOAPODS_VERSION_PATCH_Mantle 0
+#define COCOAPODS_VERSION_PATCH_Mantle 2
 
 // Mantle/extobjc
 #define COCOAPODS_POD_AVAILABLE_Mantle_extobjc
 #define COCOAPODS_VERSION_MAJOR_Mantle_extobjc 2
 #define COCOAPODS_VERSION_MINOR_Mantle_extobjc 0
-#define COCOAPODS_VERSION_PATCH_Mantle_extobjc 0
+#define COCOAPODS_VERSION_PATCH_Mantle_extobjc 2
 
 // OpenSSL
 #define COCOAPODS_POD_AVAILABLE_OpenSSL
@@ -202,5 +202,5 @@
 #define COCOAPODS_POD_AVAILABLE_libPhoneNumber_iOS
 #define COCOAPODS_VERSION_MAJOR_libPhoneNumber_iOS 0
 #define COCOAPODS_VERSION_MINOR_libPhoneNumber_iOS 8
-#define COCOAPODS_VERSION_PATCH_libPhoneNumber_iOS 4
+#define COCOAPODS_VERSION_PATCH_libPhoneNumber_iOS 5
 
