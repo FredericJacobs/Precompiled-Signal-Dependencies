@@ -20,6 +20,7 @@
 #else
   static const int ydbLogLevel = YDB_LOG_LEVEL_WARN;
 #endif
+#pragma unused(ydbLogLevel)
 
 static NSString *const ext_key_classVersion       = @"classVersion";
 static NSString *const ext_key_versionTag         = @"versionTag";
@@ -605,9 +606,9 @@ static NSString *const ext_key_version_deprecated = @"version";
 	for (i = 0; i < count; i++)
 	{
 		if (i == 0)
-			[query appendFormat:@"?"];
+			[query appendString:@"?"];
 		else
-			[query appendFormat:@", ?"];
+			[query appendString:@", ?"];
 	}
 	
 	[query appendString:@");"];
@@ -1128,6 +1129,10 @@ static NSString *const ext_key_version_deprecated = @"version";
 			__unsafe_unretained NSString *cast = (NSString *)value;
 			
 			sqlite3_bind_text(statement, bind_idx, [cast UTF8String], -1, SQLITE_TRANSIENT);
+		}
+		else if ([value isKindOfClass:[NSNull class]])
+		{
+			sqlite3_bind_null(statement, bind_idx);
 		}
 		else
 		{

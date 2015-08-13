@@ -1,0 +1,2 @@
+YAPDATABASE_OTHER_CFLAGS = $(inherited) -DSQLITE_HAS_CODEC
+YAPDATABASE_OTHER_LDFLAGS = -weak_library /usr/lib/libc++.dylib

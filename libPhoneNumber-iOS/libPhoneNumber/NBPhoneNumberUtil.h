@@ -32,14 +32,14 @@
 
 - (NSString*)extractPossibleNumber:(NSString*)phoneNumber;
 - (NSNumber*)extractCountryCode:(NSString*)fullNumber nationalNumber:(NSString**)nationalNumber;
-#if TARGET_OS_IPHONE
+#if TARGET_OS_IPHONE && !TARGET_OS_WATCH
 - (NSString *)countryCodeByCarrier;
 #endif
 
 - (NSString*)getNddPrefixForRegion:(NSString*)regionCode stripNonDigits:(BOOL)stripNonDigits;
 - (NSString*)getNationalSignificantNumber:(NBPhoneNumber*)phoneNumber;
 
-//todo: - (NSArray *)getSupportedRegions;
+- (NSArray *)getSupportedRegions;
 
 - (NBEPhoneNumberType)getNumberType:(NBPhoneNumber*)phoneNumber;
 

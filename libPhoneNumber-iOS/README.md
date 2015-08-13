@@ -1,21 +1,40 @@
 [![CocoaPods](https://img.shields.io/cocoapods/p/libPhoneNumber-iOS.svg?style=flat)](http://cocoapods.org/?q=libPhoneNumber-iOS)
 [![CocoaPods](https://img.shields.io/cocoapods/v/libPhoneNumber-iOS.svg?style=flat)](http://cocoapods.org/?q=libPhoneNumber-iOS)
 [![Travis](https://img.shields.io/travis/iziz/libPhoneNumber-iOS.svg?style=flat)](https://travis-ci.org/iziz/libPhoneNumber-iOS)
+[![Coveralls](https://coveralls.io/repos/iziz/libPhoneNumber-iOS/badge.svg?branch=master&service=github)](https://coveralls.io/github/iziz/libPhoneNumber-iOS?branch=master)
+[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
 
-# **libPhoneNumber for iOS** 
+# **libPhoneNumber for iOS**
 
  - NBPhoneNumberUtil
  - NBAsYouTypeFormatter
 
 > ARC only, or add the **"-fobjc-arc"** flag for non-ARC
- 
+
 ### Update Log
 [https://github.com/iziz/libPhoneNumber-iOS/wiki/Update-Log](https://github.com/iziz/libPhoneNumber-iOS/wiki/Update-Log)
- 
+
 ### Using [CocoaPods](http://cocoapods.org/?q=libPhoneNumber-iOS)
 ```
 source 'https://github.com/CocoaPods/Specs.git'
-pod 'libPhoneNumber-iOS', '~> 0.7'
+pod 'libPhoneNumber-iOS', '~> 0.8'
+```
+
+### Using Carthage
+
+[Carthage](https://github.com/Carthage/Carthage) is a decentralized dependency manager that automates the process of adding frameworks to your Cocoa application.
+
+You can install Carthage with [Homebrew](http://brew.sh/) using the following command:
+
+```bash
+$ brew update
+$ brew install carthage
+```
+
+To integrate libPhoneNumber into your Xcode project using Carthage, specify it in your `Cartfile`:
+
+```ogdl
+github "iziz/libPhoneNumber-iOS"
 ```
 
 ### Setting up manually
@@ -34,7 +53,7 @@ See sample test code from
  if (anError == nil) {
      // Should check error
      NSLog(@"isValidPhoneNumber ? [%@]", [phoneUtil isValidNumber:myNumber] ? @"YES":@"NO");
-     
+
      // E164          : +436766077303
      NSLog(@"E164          : %@", [phoneUtil format:myNumber
                                        numberFormat:NBEPhoneNumberFormatE164
@@ -54,12 +73,12 @@ See sample test code from
  } else {
      NSLog(@"Error : %@", [anError localizedDescription]);
  }
-    
+
  NSLog (@"extractCountryCode [%@]", [phoneUtil extractCountryCode:@"823213123123" nationalNumber:nil]);
-    
+
  NSString *nationalNumber = nil;
  NSNumber *countryCode = [phoneUtil extractCountryCode:@"823213123123" nationalNumber:&nationalNumber];
-    
+
  NSLog (@"extractCountryCode [%@] [%@]", countryCode, nationalNumber);
 ```
 ##### Output
@@ -73,6 +92,33 @@ See sample test code from
 2014-07-06 12:39:37.245 libPhoneNumberTest[1581:60b] extractCountryCode [82] [3213123123]
 ```
 
+#### with Swift
+##### - in Bridging-Header
+```swift
+// Manually added
+#import "NBPhoneNumberUtil.h"
+#import "NBPhoneNumber.h"
+
+// CocoaPods (check your library path)
+#import "libPhoneNumber-iOS/NBPhoneNumberUtil.h"
+#import "libPhoneNumber-iOS/NBPhoneNumber.h"
+
+// add more if you want...
+```
+
+##### - in swift class file
+```swift
+override func viewDidLoad() {
+    super.viewDidLoad()
+    let phoneUtil = NBPhoneNumberUtil()
+
+    var errorPointer:NSError?
+    var number:NBPhoneNumber = phoneUtil.parse("01041241282", defaultRegion:"KR", error:&errorPointer)
+
+    NSLog("%@", number)
+}
+```
+
 ### Usage - **NBAsYouTypeFormatter**
 ```obj-c
     NBAsYouTypeFormatter *f = [[NBAsYouTypeFormatter alloc] initWithRegionCode:@"US"];
@@ -82,7 +128,7 @@ See sample test code from
     NSLog(@"%@", [f inputDigit:@"2"]); // "650 2"
     NSLog(@"%@", [f inputDigit:@"5"]); // "650 25"
     NSLog(@"%@", [f inputDigit:@"3"]); // "650 253"
-    
+
     // Note this is how a US local number (without area code) should be formatted.
     NSLog(@"%@", [f inputDigit:@"2"]); // "650 2532"
     NSLog(@"%@", [f inputDigit:@"2"]); // "650 253 22"
@@ -90,7 +136,7 @@ See sample test code from
     NSLog(@"%@", [f inputDigit:@"2"]); // "650 253 2222"
     // Can remove last digit
     NSLog(@"%@", [f removeLastDigit]); // "650 253 222"
-    
+
     NSLog(@"%@", [f inputString:@"16502532222"]); // 1 650 253 2222
 ```
 
