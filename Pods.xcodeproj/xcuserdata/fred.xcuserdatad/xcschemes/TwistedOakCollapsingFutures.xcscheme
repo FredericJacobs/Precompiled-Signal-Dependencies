@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "1AA86915061CCB5C93C04E21"
+               BlueprintIdentifier = "D8869CD5CB68DE10D0061DAD"
                BuildableName = "libTwistedOakCollapsingFutures.a"
                BlueprintName = "TwistedOakCollapsingFutures"
                ReferencedContainer = "container:Pods.xcodeproj">

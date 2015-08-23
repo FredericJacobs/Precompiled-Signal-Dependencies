@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "AD6CF7C191BCDEE0423799C6"
+               BlueprintIdentifier = "564EE9579904E5FC288E43C7"
                BuildableName = "libHKDFKit.a"
                BlueprintName = "HKDFKit"
                ReferencedContainer = "container:Pods.xcodeproj">
