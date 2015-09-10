@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "6CA2132ABC5A287A1249A3E2"
+               BlueprintIdentifier = "5894A3DEC5708FDD1F31D70B"
                BuildableName = "libAPDropDownNavToolbar.a"
                BlueprintName = "APDropDownNavToolbar"
                ReferencedContainer = "container:Pods.xcodeproj">

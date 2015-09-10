@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "A70499A327974260E6C065F4"
+               BlueprintIdentifier = "D9D1B7442E52C679BEC0B0F2"
                BuildableName = "libDJWActionSheet.a"
                BlueprintName = "DJWActionSheet"
                ReferencedContainer = "container:Pods.xcodeproj">

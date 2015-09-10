@@ -16,6 +16,7 @@
 
 
 #import "SRWebSocket.h"
+#import <objc/runtime.h>
 
 #if TARGET_OS_IPHONE
 #define HAS_ICU
@@ -178,33 +179,6 @@ typedef void (^data_callback)(SRWebSocket *webSocket,  NSData *data);
 
 @interface SRWebSocket ()  <NSStreamDelegate>
 
-- (void)_writeData:(NSData *)data;
-- (void)_closeWithProtocolError:(NSString *)message;
-- (void)_failWithError:(NSError *)error;
-
-- (void)_disconnect;
-
-- (void)_readFrameNew;
-- (void)_readFrameContinue;
-
-- (void)_pumpScanner;
-
-- (void)_pumpWriting;
-
-- (void)_addConsumerWithScanner:(stream_scanner)consumer callback:(data_callback)callback;
-- (void)_addConsumerWithDataLength:(size_t)dataLength callback:(data_callback)callback readToCurrentFrame:(BOOL)readToCurrentFrame unmaskBytes:(BOOL)unmaskBytes;
-- (void)_addConsumerWithScanner:(stream_scanner)consumer callback:(data_callback)callback dataLength:(size_t)dataLength;
-- (void)_readUntilBytes:(const void *)bytes length:(size_t)length callback:(data_callback)dataHandler;
-- (void)_readUntilHeaderCompleteWithCallback:(data_callback)dataHandler;
-
-- (void)_sendFrameWithOpcode:(SROpCode)opcode data:(id)data;
-
-- (BOOL)_checkHandshake:(CFHTTPMessageRef)httpMessage;
-- (void)_SR_commonInit;
-
-- (void)_initializeStreams;
-- (void)_connect;
-
 @property (nonatomic) SRReadyState readyState;
 
 @property (nonatomic) NSOperationQueue *delegateOperationQueue;
@@ -290,7 +264,7 @@ static __strong NSData *CRLFCRLF;
         assert(request.URL);
         _url = request.URL;
         _urlRequest = request;
-        
+        _pinnedCertFound = NO;
         _requestedProtocols = [protocols copy];
         
         [self _SR_commonInit];
@@ -399,7 +373,7 @@ static __strong NSData *CRLFCRLF;
 
     _selfRetain = self;
     
-    [self _connect];
+    [self _openConnection];
 }
 
 // Calls block on delegate queue
@@ -570,10 +544,11 @@ static __strong NSData *CRLFCRLF;
         
         [_outputStream setProperty:(__bridge id)kCFStreamSocketSecurityLevelNegotiatedSSL forKey:(__bridge id)kCFStreamPropertySocketSecurityLevel];
         
-        // If we're using pinned certs, don't validate the certificate chain
-        if ([_urlRequest SR_SSLPinnedCertificates].count) {
-            [SSLOptions setValue:[NSNumber numberWithBool:NO] forKey:(__bridge id)kCFStreamSSLValidatesCertificateChain];
-        }
+	// Enforce TLS 1.2
+
+        [_outputStream setProperty:(__bridge id)CFSTR("kCFStreamSocketSecurityLevelTLSv1_2") forKey:(__bridge id)kCFStreamPropertySocketSecurityLevel];
+
+        [SSLOptions setValue:[NSNumber numberWithBool:NO] forKey:(__bridge id)kCFStreamSSLValidatesCertificateChain];
         
 #if DEBUG
         [SSLOptions setValue:[NSNumber numberWithBool:NO] forKey:(__bridge id)kCFStreamSSLValidatesCertificateChain];
@@ -588,7 +563,7 @@ static __strong NSData *CRLFCRLF;
     _outputStream.delegate = self;
 }
 
-- (void)_connect;
+- (void)_openConnection;
 {
     if (!_scheduledRunloops.count) {
         [self scheduleInRunLoop:[NSRunLoop SR_networkRunLoop] forMode:NSDefaultRunLoopMode];
@@ -635,7 +610,7 @@ static __strong NSData *CRLFCRLF;
         SRFastLog(@"Closing with code %d reason %@", code, reason);
         
         if (wasConnecting) {
-            [self _disconnect];
+            [self _closeConnection];
             return;
         }
 
@@ -672,7 +647,7 @@ static __strong NSData *CRLFCRLF;
     [self _performDelegateBlock:^{
         [self closeWithCode:SRStatusCodeProtocolError reason:message];
         dispatch_async(_workQueue, ^{
-            [self _disconnect];
+            [self _closeConnection];
         });
     }];
 }
@@ -693,7 +668,7 @@ static __strong NSData *CRLFCRLF;
 
             SRFastLog(@"Failing with error %@", error.localizedDescription);
             
-            [self _disconnect];
+            [self _closeConnection];
         }
     });
 }
@@ -835,11 +810,11 @@ static inline BOOL closeCodeIsValid(int closeCode) {
         [self closeWithCode:1000 reason:nil];
     }
     dispatch_async(_workQueue, ^{
-        [self _disconnect];
+        [self _closeConnection];
     });
 }
 
-- (void)_disconnect;
+- (void)_closeConnection;
 {
     [self assertOnWorkQueue];
     SRFastLog(@"Trying to disconnect");
@@ -866,7 +841,7 @@ static inline BOOL closeCodeIsValid(int closeCode) {
             if (str == nil && frameData) {
                 [self closeWithCode:SRStatusCodeInvalidUTF8 reason:@"Text frames must be valid UTF-8"];
                 dispatch_async(_workQueue, ^{
-                    [self _disconnect];
+                    [self _closeConnection];
                 });
 
                 return;
@@ -1257,7 +1232,7 @@ static const char CRLFCRLFBytes[] = {'\r', '\n', '\r', '\n'};
                     if (valid_utf8_size == -1) {
                         [self closeWithCode:SRStatusCodeInvalidUTF8 reason:@"Text frames must be valid UTF-8"];
                         dispatch_async(_workQueue, ^{
-                            [self _disconnect];
+                            [self _closeConnection];
                         });
                         return didWork;
                     } else {
@@ -1383,33 +1358,25 @@ static const size_t SRFrameHeaderOverhead = 32;
     
     [self _writeData:frame];
 }
-static BOOL evaluateServerTrust(SecTrustRef serverTrust) {
-    BOOL isValid = NO;
-    SecTrustResultType result;
-
-    OSStatus status = SecTrustEvaluate(serverTrust, &result);
-    
-    isValid = ((result == kSecTrustResultUnspecified) && status == 0);
-
-    return isValid;
-}
 
 - (void)stream:(NSStream *)aStream handleEvent:(NSStreamEvent)eventCode;
 {
     if (_secure && !_pinnedCertFound && (eventCode == NSStreamEventHasBytesAvailable || eventCode == NSStreamEventHasSpaceAvailable)) {
-        
-        NSArray *sslCerts = [_urlRequest SR_SSLPinnedCertificates];
-        if (sslCerts) {
-            SecTrustRef serverTrust = (__bridge SecTrustRef)[aStream propertyForKey:(__bridge id)kCFStreamPropertySSLPeerTrust];
-            SecTrustSetAnchorCertificates(serverTrust, (__bridge CFArrayRef)sslCerts);
-            
-            if (!evaluateServerTrust(serverTrust)) {
-                dispatch_async(_workQueue, ^{
-                    [self _failWithError:[NSError errorWithDomain:SRWebSocketErrorDomain code:23556 userInfo:[NSDictionary dictionaryWithObject:[NSString stringWithFormat:@"Invalid server cert"] forKey:NSLocalizedDescriptionKey]]];
-                });
-                return;
-            }
+
+        id<CertificateVerifier> verifier = [_urlRequest securityPolicy];
+        if (!verifier) {
+            @throw [NSException exceptionWithName:@"Can't verify WebSocket trust." reason:@"Missing security policy." userInfo:nil];
         }
+
+        SecTrustRef secTrust = (__bridge SecTrustRef)[aStream propertyForKey:(__bridge id)kCFStreamPropertySSLPeerTrust];
+        if (! (secTrust && [verifier evaluateServerTrust:secTrust forDomain:_urlRequest.URL.host])) {
+            dispatch_async(_workQueue, ^{
+                [self _failWithError:[NSError errorWithDomain:SRWebSocketErrorDomain code:23556 userInfo:[NSDictionary dictionaryWithObject:[NSString stringWithFormat:@"Invalid server cert"] forKey:NSLocalizedDescriptionKey]]];
+            });
+            return;
+        }
+
+        _pinnedCertFound = YES;
     }
 
     dispatch_async(_workQueue, ^{
@@ -1568,26 +1535,28 @@ static BOOL evaluateServerTrust(SecTrustRef serverTrust) {
 
 @end
 
-
 @implementation  NSURLRequest (CertificateAdditions)
 
-- (NSArray *)SR_SSLPinnedCertificates;
+static id certificateVerifier;
+
+- (id<CertificateVerifier>)securityPolicy;
 {
-    return [NSURLProtocol propertyForKey:@"SR_SSLPinnedCertificates" inRequest:self];
+    return objc_getAssociatedObject(self, &certificateVerifier);
 }
 
 @end
 
 @implementation  NSMutableURLRequest (CertificateAdditions)
 
-- (NSArray *)SR_SSLPinnedCertificates;
+- (void)setSecurityPolicy:(id<CertificateVerifier>)securityPolicy
 {
-    return [NSURLProtocol propertyForKey:@"SR_SSLPinnedCertificates" inRequest:self];
-}
-
-- (void)setSR_SSLPinnedCertificates:(NSArray *)SR_SSLPinnedCertificates;
-{
-    [NSURLProtocol setProperty:SR_SSLPinnedCertificates forKey:@"SR_SSLPinnedCertificates" inRequest:self];
+    if (![securityPolicy respondsToSelector:@selector(evaluateServerTrust:forDomain:)]) {
+        @throw [NSException exceptionWithName:@"Assigning security policy failed."
+                                       reason:@"Trying to assign a security policy that doesn't respond to required selector"
+                                     userInfo:nil];
+    }
+    
+    objc_setAssociatedObject(self, &certificateVerifier, securityPolicy, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 @end
@@ -1687,7 +1656,7 @@ static inline int32_t validate_dispatch_data_partial_string(NSData *data) {
     for (int i = 0; i < maxCodepointSize; i++) {
         NSString *str = [[NSString alloc] initWithBytesNoCopy:(char *)data.bytes length:data.length - i encoding:NSUTF8StringEncoding freeWhenDone:NO];
         if (str) {
-            return data.length - i;
+            return (int32_t)data.length - i;
         }
     }
     
@@ -1743,8 +1712,22 @@ static NSRunLoop *networkRunLoop = nil;
         _runLoop = [NSRunLoop currentRunLoop];
         dispatch_group_leave(_waitGroup);
         
-        NSTimer *timer = [[NSTimer alloc] initWithFireDate:[NSDate distantFuture] interval:0.0 target:nil selector:nil userInfo:nil repeats:NO];
-        [_runLoop addTimer:timer forMode:NSDefaultRunLoopMode];
+        // Add an empty run loop source to prevent runloop from spinning.
+        CFRunLoopSourceContext sourceCtx = {
+            .version = 0,
+            .info = NULL,
+            .retain = NULL,
+            .release = NULL,
+            .copyDescription = NULL,
+            .equal = NULL,
+            .hash = NULL,
+            .schedule = NULL,
+            .cancel = NULL,
+            .perform = NULL
+        };
+        CFRunLoopSourceRef source = CFRunLoopSourceCreate(NULL, 0, &sourceCtx);
+        CFRunLoopAddSource(CFRunLoopGetCurrent(), source, kCFRunLoopDefaultMode);
+        CFRelease(source);
         
         while ([_runLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]]) {
             
