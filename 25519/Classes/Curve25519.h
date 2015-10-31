@@ -16,6 +16,10 @@
 }
 
 -(NSData*) publicKey;
+-(NSData*) privateKey;
+
+- (instancetype)initWithPublic:(NSData*)pubkey
+                       private:(NSData*)privKey;
 
 @end
 

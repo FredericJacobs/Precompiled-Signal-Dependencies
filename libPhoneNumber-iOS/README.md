@@ -1,6 +1,6 @@
 [![CocoaPods](https://img.shields.io/cocoapods/p/libPhoneNumber-iOS.svg?style=flat)](http://cocoapods.org/?q=libPhoneNumber-iOS)
 [![CocoaPods](https://img.shields.io/cocoapods/v/libPhoneNumber-iOS.svg?style=flat)](http://cocoapods.org/?q=libPhoneNumber-iOS)
-[![Travis](https://img.shields.io/travis/iziz/libPhoneNumber-iOS.svg?style=flat)](https://travis-ci.org/iziz/libPhoneNumber-iOS)
+[![Travis](https://travis-ci.org/iziz/libPhoneNumber-iOS.svg?branch=master)](https://travis-ci.org/iziz/libPhoneNumber-iOS)
 [![Coveralls](https://coveralls.io/repos/iziz/libPhoneNumber-iOS/badge.svg?branch=master&service=github)](https://coveralls.io/github/iziz/libPhoneNumber-iOS?branch=master)
 [![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
 
@@ -11,20 +11,22 @@
 
 > ARC only, or add the **"-fobjc-arc"** flag for non-ARC
 
-### Update Log
+## Update Log
 [https://github.com/iziz/libPhoneNumber-iOS/wiki/Update-Log](https://github.com/iziz/libPhoneNumber-iOS/wiki/Update-Log)
 
-### Using [CocoaPods](http://cocoapods.org/?q=libPhoneNumber-iOS)
+## Install 
+
+#### Using [CocoaPods](http://cocoapods.org/?q=libPhoneNumber-iOS)
 ```
 source 'https://github.com/CocoaPods/Specs.git'
 pod 'libPhoneNumber-iOS', '~> 0.8'
 ```
 
-### Using Carthage
+#### Using [Carthage](https://github.com/Carthage/Carthage)
 
-[Carthage](https://github.com/Carthage/Carthage) is a decentralized dependency manager that automates the process of adding frameworks to your Cocoa application.
+ Carthage is a decentralized dependency manager that automates the process of adding frameworks to your Cocoa application.
 
-You can install Carthage with [Homebrew](http://brew.sh/) using the following command:
+ You can install Carthage with [Homebrew](http://brew.sh/) using the following command:
 
 ```bash
 $ brew update
@@ -37,14 +39,14 @@ To integrate libPhoneNumber into your Xcode project using Carthage, specify it i
 github "iziz/libPhoneNumber-iOS"
 ```
 
-### Setting up manually
-##### Add source files to your projects from libPhoneNumber
+#### Setting up manually
+ Add source files to your projects from libPhoneNumber
     - Add "CoreTelephony.framework"
 
 See sample test code from
-> [libPhoneNumber-iOS/libPhoneNumberTests/libPhoneNumberTests.m] (https://github.com/iziz/libPhoneNumber-iOS/blob/master/libPhoneNumberTests/NBPhoneNumberUtilTests.m)
+> [libPhoneNumber-iOS/libPhoneNumberTests/ ... Test.m] (https://github.com/iziz/libPhoneNumber-iOS/tree/master/libPhoneNumberTests)
 
-### Usage - **NBPhoneNumberUtil**
+## Usage - **NBPhoneNumberUtil**
 ```obj-c
  NBPhoneNumberUtil *phoneUtil = [[NBPhoneNumberUtil alloc] init];
  NSError *anError = nil;
@@ -100,8 +102,8 @@ See sample test code from
 #import "NBPhoneNumber.h"
 
 // CocoaPods (check your library path)
-#import "libPhoneNumber-iOS/NBPhoneNumberUtil.h"
-#import "libPhoneNumber-iOS/NBPhoneNumber.h"
+#import "libPhoneNumber_iOS/NBPhoneNumberUtil.h"
+#import "libPhoneNumber_iOS/NBPhoneNumber.h"
 
 // add more if you want...
 ```
@@ -113,13 +115,35 @@ override func viewDidLoad() {
     let phoneUtil = NBPhoneNumberUtil()
 
     var errorPointer:NSError?
-    var number:NBPhoneNumber = phoneUtil.parse("01041241282", defaultRegion:"KR", error:&errorPointer)
-
-    NSLog("%@", number)
+    var number:NBPhoneNumber? = phoneUtil.parse("01041241282", defaultRegion:"KR", error:&errorPointer)
+    if errorPointer == nil && number != nil {
+       println("number is: \(number)")
+    } else {
+       println("number error: \(errorPointer?.localizedDescription)")
+    }
 }
 ```
 
-### Usage - **NBAsYouTypeFormatter**
+###### 2.0
+```swift
+override func viewDidLoad() {
+    super.viewDidLoad()
+
+    let phoneUtil = NBPhoneNumberUtil()
+
+    do {
+        let phoneNumber: NBPhoneNumber = try phoneUtil.parse("01065431234", defaultRegion: "KR")
+        let formattedString: String = try phoneUtil.format(phoneNumber, numberFormat: NBEPhoneNumberFormatE164)
+
+        NSLog("[%@]", formattedString)
+    }
+    catch let error as NSError {
+        print(error.localizedDescription)
+    }
+}
+```
+
+## Usage - **NBAsYouTypeFormatter**
 ```obj-c
     NBAsYouTypeFormatter *f = [[NBAsYouTypeFormatter alloc] initWithRegionCode:@"US"];
     NSLog(@"%@", [f inputDigit:@"6"]); // "6"
