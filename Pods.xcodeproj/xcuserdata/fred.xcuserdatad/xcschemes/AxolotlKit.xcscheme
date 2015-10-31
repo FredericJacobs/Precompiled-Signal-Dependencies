@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "B41E6CD6C68B7FCCBE569F6B"
+               BlueprintIdentifier = "55D6929ABF67502BE3D07DD8"
                BuildableName = "libAxolotlKit.a"
                BlueprintName = "AxolotlKit"
                ReferencedContainer = "container:Pods.xcodeproj">
