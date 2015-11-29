@@ -69,23 +69,8 @@ extern int  curve25519_sign(unsigned char* signature_out, /* 64 bytes */
     return keyPair;
 }
 
-
-- (instancetype)initWithPublic:(NSData*)pubkey
-                       private:(NSData*)privKey{
-    self = [super init];
-    
-    memcpy(self->privateKey, [privKey bytes], 32);
-    memcpy(self->publicKey, [pubkey bytes], 32);
-    
-    return self;
-}
-
 -(NSData*) publicKey {
     return [NSData dataWithBytes:self->publicKey length:32];
-}
-
--(NSData*) privateKey {
-    return [NSData dataWithBytes:self->privateKey length:32];
 }
 
 -(NSData*) sign:(NSData*)data{
